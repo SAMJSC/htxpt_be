@@ -1,0 +1,33 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "declaration": true,
+        "removeComments": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "target": "es2017",
+        "sourceMap": true,
+        "outDir": "./dist",
+        "baseUrl": "./src",
+        "incremental": true,
+        "allowJs": true,
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "paths": {
+            "@abis/*": ["abis/*"],
+            "@auth/*": ["auth/*"],
+            "@config/*": ["config/*"],
+            "@constants/*": ["constants/*"],
+            "@core/*": ["core/*"],
+            "@entities/*": ["entities/*"],
+            "@guards/*": ["guards/*"],
+            "@models/*": ["models/*"],
+            "@shared/*": ["shared/*"],
+            "@modules/*": ["modules/*"],
+            "@repositories/*": ["repositories/*"]
+        }
+    },
+    "include": ["src/**/*", "src/abis/*.json", "test/**/*.ts"],
+    "exclude": ["node_modules", "dist"]
+}

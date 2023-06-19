@@ -1,0 +1,6 @@
+.github
+.husky
+.vscode
+database
+dist
+node_modules
