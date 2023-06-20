@@ -28,6 +28,6 @@
             "@repositories/*": ["repositories/*"]
         }
     },
-    "include": ["src/**/*", "src/abis/*.json", "test/**/*.ts"],
+    "include": ["src/**/*", "src/abis/*.json", "test/**/*.ts", "ormconfig.ts"],
     "exclude": ["node_modules", "dist"]
 }

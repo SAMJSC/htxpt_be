@@ -1,5 +1,5 @@
 import { UserRoles } from "@constants/common.constants";
-import { UserEntity } from "@entities/user.entity";
+import { UserEntity } from "@entities/users.entity";
 
 export type Constructor<T, Arguments extends unknown[] = undefined[]> = new (
     ...arguments_: Arguments

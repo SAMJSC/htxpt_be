@@ -26,10 +26,7 @@ export class UserEntity
     extends AbstractEntity<UserDto, UserDtoOptions>
     implements IUserEntity
 {
-    @Column({ nullable: false })
-    id: string;
-
-    @Column({ nullable: true })
+    @Column({ name: "middle_name", nullable: true })
     middleName?: string;
 
     @Column({ nullable: true })
@@ -41,19 +38,19 @@ export class UserEntity
     @Column({ nullable: true })
     gender?: Gender;
 
-    @Column({ nullable: true })
+    @Column({ name: "user_name", nullable: true })
     userName: string;
 
     @Column({ nullable: true })
     password: string;
 
-    @Column({ nullable: true })
+    @Column({ name: "reset_token", nullable: true })
     resetToken?: string;
 
-    @Column({ nullable: true })
+    @Column({ name: "first_name", nullable: true })
     firstName?: string;
 
-    @Column({ nullable: false })
+    @Column({ name: "last_name", nullable: false })
     lastName: string;
 
     @Column({ type: "enum", enum: UserRoles, default: UserRoles.USER })
@@ -62,7 +59,7 @@ export class UserEntity
     @Column({ unique: true, nullable: true })
     email?: string;
 
-    @Column({ nullable: true })
+    @Column({ name: "date_of_birth", nullable: true })
     dateOfBirth?: Date;
 
     @Column({ nullable: true })

@@ -1,4 +1,4 @@
-import { UserEntity } from "@entities/user.entity";
+import { UserEntity } from "@entities/users.entity";
 import { GetUsersQueryReqDto } from "@modules/user/dto/user-request.dto";
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";

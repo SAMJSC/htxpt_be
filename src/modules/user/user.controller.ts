@@ -1,8 +1,9 @@
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
-import { UserService } from "./user.service";
-import { RolesGuard } from "@guards/roles.guard";
 import { JwtAuthGuard } from "@guards/jwt-auth.guard";
+import { RolesGuard } from "@guards/roles.guard";
 import { GetUsersQueryReqDto } from "@modules/user/dto/user-request.dto";
+import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+
+import { UserService } from "./user.service";
 
 @Controller("users")
 export class UserController {

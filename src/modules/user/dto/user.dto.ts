@@ -1,5 +1,5 @@
 import { UserRoles } from "@constants/common.constants";
-import { UserEntity } from "@entities/user.entity";
+import { UserEntity } from "@entities/users.entity";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { AbstractDto } from "common/dtos/abstract.dto";
 
@@ -49,7 +49,6 @@ export class UserDto extends AbstractDto {
         super(user);
         this.firstName = user.firstName;
         this.lastName = user.lastName;
-        this.createdAt = user.createdAt;
         this.userName = user.userName;
         this.password = user.password;
         this.middleName = user.middleName;

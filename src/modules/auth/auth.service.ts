@@ -1,19 +1,31 @@
-import { UserEntity } from "@entities/user.entity";
+import { DeviceSessionEntity } from "@entities/devices-session.entity";
+import { UserEntity } from "@entities/users.entity";
+import { ChangePasswordDto } from "@modules/auth/dto/ChangePassword.dto";
+import { RefreshTokenDto } from "@modules/auth/dto/RefreshToken.dto";
+import { UserLoginDto } from "@modules/auth/dto/UserLogin.dto";
 import { UserRegisterDto } from "@modules/auth/dto/UserRegister.dto";
-import * as bcrypt from "bcrypt";
-import { scrypt } from "crypto";
 import { UserDto } from "@modules/user/dto/user.dto";
 import { UserService } from "@modules/user/user.service";
-import { HttpException, HttpStatus } from "@nestjs/common";
+import {
+    CACHE_MANAGER,
+    HttpException,
+    HttpStatus,
+    Inject,
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
+import * as bcrypt from "bcrypt";
+import { Cache } from "cache-manager";
+import { scrypt } from "crypto";
+import { GenerateAccessJWTData } from "interfaces/common.interface";
+import { LoginMetadata, LoginResponseData, Session } from "type";
 import { Repository } from "typeorm";
 import { promisify } from "util";
-import { LoginMetadata, LoginResponseData, Session } from "type";
-import { DeviceSessionEntity } from "@entities/devices-session.entity";
-import { generateAccessJWT, generateRefreshJWT } from "utils/jwt";
-import { UserLoginDto } from "@modules/auth/dto/UserLogin.dto";
-
+import {
+    generateAccessJWT,
+    generateRefreshJWT,
+    verifyRefreshJWT,
+} from "utils/jwt";
 export class AuthService {
     constructor(
         @InjectRepository(UserEntity)
@@ -21,7 +33,9 @@ export class AuthService {
         private jwtService: JwtService,
         private userService: UserService,
         @InjectRepository(DeviceSessionEntity)
-        private deviceSessionRepository: Repository<DeviceSessionEntity>
+        private deviceSessionRepository: Repository<DeviceSessionEntity>,
+        @Inject(CACHE_MANAGER)
+        private cacheManager: Cache
     ) {}
 
     isDifferentUser(session: Session, user: UserEntity) {
@@ -48,6 +62,32 @@ export class AuthService {
         return user;
     }
 
+    async saveUser(user: UserEntity) {
+        try {
+            await this.userRepository.save(user);
+        } catch (error) {
+            throw new HttpException(
+                "Failed to save user",
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    async getUserById(id: string) {
+        const user = await this.userRepository.findOne({
+            where: { id: id },
+        });
+
+        if (!user) {
+            throw new HttpException(
+                `User with ${id} not found`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        return user;
+    }
+
     async checkPassword(
         userPassword: string,
         hashedPassword: string
@@ -59,7 +99,7 @@ export class AuthService {
             32
         )) as Buffer;
 
-        return hash.toString("hex") !== storedHash;
+        return hash.toString("hex") === storedHash;
     }
 
     async hashPassword(password: string): Promise<string> {
@@ -99,6 +139,10 @@ export class AuthService {
         return await queryBuilder.getOne();
     }
 
+    getKeyCache(userId: string, deviceId: string): string {
+        return `sk_${userId}_${deviceId}`;
+    }
+
     async createSession(user: UserEntity, loginMetaData: LoginMetadata) {
         const { userData, accessToken, refreshToken } =
             await this.generateResponseLoginData(user);
@@ -117,6 +161,7 @@ export class AuthService {
         newDevice.ua = loginMetaData.ua;
         newDevice.expiredAt = new Date(refreshTokenExpireAtMs);
         newDevice.userId = userData.id;
+        newDevice.user = user;
 
         await this.deviceSessionRepository.save(newDevice);
 
@@ -158,6 +203,38 @@ export class AuthService {
             refreshToken,
             userData,
         };
+    }
+
+    async generateNewAccessJWT(
+        deviceId: string,
+        refreshTokenDto: RefreshTokenDto
+    ): Promise<GenerateAccessJWTData> {
+        const { refreshToken } = refreshTokenDto;
+        const session: any = await this.getSession(
+            deviceId,
+            undefined,
+            refreshToken
+        );
+
+        if (!session || session.expiredAt < new Date()) {
+            throw new HttpException(
+                "Refresh token invalid",
+                HttpStatus.UNAUTHORIZED
+            );
+        }
+        let payload: any;
+        try {
+            payload = await verifyRefreshJWT(refreshToken);
+        } catch (error) {
+            throw new HttpException(error.message, HttpStatus.UNAUTHORIZED);
+        }
+
+        delete payload.exp;
+        delete payload.iat;
+
+        const accessToken = generateAccessJWT(payload, { expiresIn: 1800 });
+
+        return { accessToken };
     }
 
     async signUp(userData: UserRegisterDto): Promise<UserDto> {
@@ -211,10 +288,13 @@ export class AuthService {
         return savedUser;
     }
 
-    async signIn(loginDto: UserLoginDto, loginMetaData: LoginMetadata) {
+    async login(loginDto: UserLoginDto, loginMetaData: LoginMetadata) {
         const user = await this.getUserByEmail(loginDto.email);
 
-        if (await this.checkPassword(loginDto.password, user.password)) {
+        if (
+            (await this.checkPassword(loginDto.password, user.password)) ==
+            false
+        ) {
             throw new HttpException(
                 "Password is invalid",
                 HttpStatus.BAD_REQUEST
@@ -244,5 +324,51 @@ export class AuthService {
         return {
             refreshToken: session.refreshToken,
         };
+    }
+
+    async getCurrentUser(email: string): Promise<UserEntity> {
+        const user = this.getUserByEmail(email);
+        return user;
+    }
+
+    async logout(userId: string, deviceId: string) {
+        const session: any = await this.getSession(deviceId);
+
+        const user = await this.getUserById(userId);
+
+        if (!session || !user) {
+            throw new HttpException("You need to login", HttpStatus.FORBIDDEN);
+        }
+        const keyCache = this.getKeyCache(userId, session.id);
+
+        await this.cacheManager.del(keyCache);
+        await this.deviceSessionRepository.delete(session.id);
+        return {
+            message: "Logout success",
+            status: 200,
+            sessionId: deviceId,
+        };
+    }
+
+    async changePassword(
+        email: string,
+        changePasswordDto: ChangePasswordDto
+    ): Promise<void> {
+        const user = await this.getUserByEmail(email);
+        const isOldPasswordValid = await this.checkPassword(
+            changePasswordDto.oldPassword,
+            user.password
+        );
+
+        if (!isOldPasswordValid) {
+            throw new HttpException(
+                "Invalid old password",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        user.password = await this.hashPassword(changePasswordDto.newPassword);
+
+        await this.saveUser(user);
     }
 }

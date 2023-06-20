@@ -1,5 +1,3 @@
-import { NestFactory, Reflector } from "@nestjs/core";
-import { AppModule } from "./app.module";
 import {
     HttpStatus,
     Logger,
@@ -7,12 +5,15 @@ import {
     ValidationPipe,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
-import { initSwagger } from "swagger";
+import { NestFactory, Reflector } from "@nestjs/core";
+import { rateLimit } from "express-rate-limit";
 import { HttpExceptionFilter } from "filters/bad-request.filter";
 import { QueryFailedFilter } from "filters/query-fail.filter";
-import * as Fingerprint2 from "fingerprintjs2";
+import { get, x64hash128 } from "fingerprintjs2";
+import helmet from "helmet";
+import { initSwagger } from "swagger";
+
+import { AppModule } from "./app.module";
 
 async function bootstrap() {
     const logger = new Logger(bootstrap.name);
@@ -53,11 +54,11 @@ async function bootstrap() {
 
     const getDeviceId = () => {
         return new Promise((resolve) => {
-            Fingerprint2.get((components: any) => {
+            get((components: any) => {
                 const values = components.map(
                     (component: any) => component.value
                 );
-                const murmur = Fingerprint2.x64hash128(values.join(""), 31);
+                const murmur = x64hash128(values.join(""), 31);
                 resolve(murmur);
             });
         });

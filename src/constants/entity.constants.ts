@@ -1,3 +1,4 @@
 export enum ETableName {
-    USER = "user",
+    USER = "users",
+    DEVICE_SESSION = "devices_session",
 }

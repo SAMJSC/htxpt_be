@@ -1,7 +1,7 @@
-import bcrypt from "bcrypt";
+import { compare, hashSync } from "bcrypt";
 
 export function generateHash(password: string): string {
-    return bcrypt.hashSync(password, 10);
+    return hashSync(password, 10);
 }
 
 export function validateHash(
@@ -12,5 +12,5 @@ export function validateHash(
         return Promise.resolve(false);
     }
 
-    return bcrypt.compare(password, hash);
+    return compare(password, hash);
 }

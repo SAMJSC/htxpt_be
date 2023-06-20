@@ -9,7 +9,7 @@ export enum UserRoles {
 }
 
 export enum Gender {
-    MALE = 1,
-    FEMALE,
-    NONE,
+    Male = "Male",
+    Female = "Female",
+    Other = "Other",
 }

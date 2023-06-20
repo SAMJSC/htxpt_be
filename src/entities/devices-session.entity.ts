@@ -1,19 +1,28 @@
-import { UserEntity } from "@entities/user.entity";
+import { ETableName } from "@constants/entity.constants";
+import { UserEntity } from "@entities/users.entity";
 import {
-    BaseEntity,
-    Column,
-    Entity,
-    JoinColumn,
-    ManyToOne,
-    PrimaryGeneratedColumn,
-    UpdateDateColumn,
-} from "typeorm";
+    DeviceSessionDto,
+    DeviceSessionDtoOptional as DeviceSessionDtoOptions,
+} from "@modules/auth/dto/Session.dto";
+import { AbstractEntity, IAbstractEntity } from "common/abstract.entity";
+import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 
-@Entity()
-export class DeviceSessionEntity extends BaseEntity {
-    @PrimaryGeneratedColumn("uuid")
-    id: string;
+export interface IDeviceSessionEntity
+    extends IAbstractEntity<DeviceSessionDto> {
+    deviceId: string;
+    name?: string;
+    ua: string;
+    refreshToken: string;
+    expiredAt: Date;
+    ipAddress: string;
+    userId: string;
+}
 
+@Entity({ name: ETableName.DEVICE_SESSION })
+export class DeviceSessionEntity
+    extends AbstractEntity<DeviceSessionDto, DeviceSessionDtoOptions>
+    implements IDeviceSessionEntity
+{
     @Column({ name: "device_id" })
     deviceId: string;
 
@@ -32,21 +41,12 @@ export class DeviceSessionEntity extends BaseEntity {
     @Column({ name: "ip_address" })
     ipAddress: string;
 
-    @Column({
-        name: "create_at",
-        type: "timestamp",
-        default: () => "CURRENT_TIMESTAMP",
-    })
-    createdAt: Date;
-
-    @UpdateDateColumn({ name: "update_at" })
-    updatedAt: Date;
-
     @Column({ name: "user_id" })
     userId: string;
 
     @ManyToOne(() => UserEntity, (user) => user.deviceSessions, {
         onDelete: "CASCADE",
+        onUpdate: "CASCADE",
     })
     @JoinColumn({ name: "user_id" })
     user: UserEntity;

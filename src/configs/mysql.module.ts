@@ -22,8 +22,9 @@ import { TypeOrmModule, TypeOrmModuleOptions } from "@nestjs/typeorm";
                     password: password || "",
                     database: database || "mydatabase",
                     entities: ["dist/**/*.entity.{ts,js}"],
-                    synchronize: true,
+                    synchronize: false,
                     autoLoadEntities: true,
+                    logging: true,
                 };
 
                 return typeOrmOptions;
