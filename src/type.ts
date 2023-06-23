@@ -1,6 +1,5 @@
 import { UserRoles } from "@constants/common.constants";
-import { UserEntity } from "@entities/users.entity";
-
+import { IUser } from "interfaces/user.interface";
 export type Constructor<T, Arguments extends unknown[] = undefined[]> = new (
     ...arguments_: Arguments
 ) => T;
@@ -33,5 +32,5 @@ export interface Session {
     ipAddress: string;
     createdAt: Date;
     updatedAt: Date;
-    user: UserEntity;
+    user: IUser;
 }
