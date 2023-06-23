@@ -1,4 +1,4 @@
-import { AuthModule } from "@modules/auth/auth.module";
-import { UserModule } from "@modules/user/user.module";
+import { ProductsModule } from "@modules/products/products.module";
+import { UsersModule } from "@modules/users/users.module";
 
-export const MODULES = [UserModule, AuthModule];
+export const MODULES = [UsersModule, ProductsModule];
