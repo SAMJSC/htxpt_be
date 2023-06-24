@@ -1,17 +1,17 @@
-import { Gender, UserRoles } from "@constants/common.constants";
+import { GENDER, USER_ROLES } from "@constants/common.constants";
 import { Document } from "mongoose";
 
-export interface IUser extends Document {
+export interface IGarden extends Document {
     readonly last_name: string;
     readonly middle_name?: string;
     readonly address?: string;
     readonly age?: number;
-    readonly gender?: Gender;
+    readonly gender?: GENDER;
     readonly user_name: string;
     readonly password: string;
     readonly reset_token?: string;
     readonly first_name?: string;
-    readonly role: UserRoles;
+    readonly role: USER_ROLES;
     readonly email?: string;
     readonly date_of_birth?: Date;
     readonly phone?: string;

@@ -1,6 +1,6 @@
-import { CreateUserDto } from "@modules/users/dtos/create-user.dto";
-import { UpdateUserDto } from "@modules/users/dtos/update-user.dto";
-import { UsersService } from "@modules/users/users.service";
+import { UsersService } from "@modules/users/customers.service";
+import { CreateCustomerDto } from "@modules/users/dtos/create-сustomer.dto";
+import { UpdateUserDto } from "@modules/users/dtos/update-customer.dto";
 import {
     Body,
     Controller,
@@ -15,12 +15,15 @@ import {
     Res,
 } from "@nestjs/common";
 
-@Controller("users")
+@Controller("customer")
 export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
     @Post("/create")
-    async addCustomer(@Res() res: any, @Body() createUserDto: CreateUserDto) {
+    async addCustomer(
+        @Res() res: any,
+        @Body() createUserDto: CreateCustomerDto
+    ) {
         const customer = await this.usersService.createUser(createUserDto);
         return res.status(HttpStatus.OK).json({
             message: "Customer has been created successfully",

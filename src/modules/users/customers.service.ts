@@ -1,18 +1,18 @@
-import { CreateUserDto } from "@modules/users/dtos/create-user.dto";
-import { UpdateUserDto } from "@modules/users/dtos/update-user.dto";
+import { CreateCustomerDto } from "@modules/users/dtos/create-сustomer.dto";
+import { UpdateUserDto } from "@modules/users/dtos/update-customer.dto";
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import { User } from "Schemas/users.schema";
+import { Customer } from "schemas/users.schema";
 
 @Injectable()
 export class UsersService {
     constructor(
-        @InjectModel(User.name)
-        private userModel: Model<User>
+        @InjectModel(Customer.name)
+        private userModel: Model<Customer>
     ) {}
 
-    async createUser(createUserDto: CreateUserDto): Promise<User> {
+    async createUser(createUserDto: CreateCustomerDto): Promise<Customer> {
         try {
             const createUser = new this.userModel(createUserDto);
             return await createUser.save();
@@ -27,16 +27,19 @@ export class UsersService {
         }
     }
 
-    async getAllCustomer(): Promise<User[]> {
+    async getAllCustomer(): Promise<Customer[]> {
         const customers = await this.userModel.find().exec();
         return customers;
     }
 
-    async getCustomer(userID: string): Promise<User> {
+    async getCustomer(userID: string): Promise<Customer> {
         return await this.userModel.findById(userID).exec();
     }
 
-    async updateCustomer(userID, updateUserDto: UpdateUserDto): Promise<User> {
+    async updateCustomer(
+        userID,
+        updateUserDto: UpdateUserDto
+    ): Promise<Customer> {
         const updatedCustomer = await this.userModel.findByIdAndUpdate(
             userID,
             updateUserDto,

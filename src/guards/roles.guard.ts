@@ -1,8 +1,8 @@
-import { UserRoles } from "@constants/common.constants";
+import { USER_ROLES } from "@constants/common.constants";
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import { Injectable } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { IUser } from "interfaces/user.interface";
+import { IGarden } from "interfaces/user.interface";
 import _ from "lodash";
 
 @Injectable()
@@ -10,7 +10,7 @@ export class RolesGuard implements CanActivate {
     constructor(private readonly reflector: Reflector) {}
 
     canActivate(context: ExecutionContext): boolean {
-        const roles = this.reflector.get<UserRoles[]>(
+        const roles = this.reflector.get<USER_ROLES[]>(
             "roles",
             context.getHandler()
         );
@@ -20,7 +20,7 @@ export class RolesGuard implements CanActivate {
         }
 
         const request = context.switchToHttp().getRequest();
-        const user = <IUser>request.user;
+        const user = <IGarden>request.user;
 
         return roles.includes(user.role);
     }

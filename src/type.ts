@@ -1,13 +1,19 @@
-import { UserRoles } from "@constants/common.constants";
-import { IUser } from "interfaces/user.interface";
+import { USER_ROLES } from "@constants/common.constants";
+import { Garden } from "schemas/garden.schema";
 export type Constructor<T, Arguments extends unknown[] = undefined[]> = new (
     ...arguments_: Arguments
 ) => T;
 
 export interface SafeUser {
-    id: string;
     email?: string;
-    role: UserRoles;
+    role: USER_ROLES;
+    delete_at?: string;
+}
+
+export interface LoginResponseData {
+    accessToken: string;
+    refreshToken: string;
+    gardenData: SafeUser;
 }
 
 export interface LoginMetadata {
@@ -15,22 +21,17 @@ export interface LoginMetadata {
     ua: string;
     deviceId: string;
 }
-
-export interface LoginResponseData {
-    accessToken: string;
-    refreshToken: string;
-    userData: SafeUser;
-}
-
 export interface Session {
-    id: string;
-    deviceId: string;
+    device_id: string;
     name: string;
     ua: string;
-    refreshToken: string;
-    expiredAt: Date;
-    ipAddress: string;
-    createdAt: Date;
-    updatedAt: Date;
-    user: IUser;
+    refresh_token: string;
+    expired_at: Date;
+    ip_address: string;
+    garden: Garden;
+    delete_at?: string;
+}
+
+export interface GenerateAccessJWTData {
+    accessToken: string;
 }
