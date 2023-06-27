@@ -1,27 +1,37 @@
-import { USER_ROLES } from "@constants/common.constants";
-import type { CanActivate, ExecutionContext } from "@nestjs/common";
-import { Injectable } from "@nestjs/common";
+import {
+    CanActivate,
+    ExecutionContext,
+    HttpException,
+    HttpStatus,
+    Injectable,
+} from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { IGarden } from "interfaces/user.interface";
-import _ from "lodash";
+import { verifyAccessJWT } from "utils/jwt";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-    constructor(private readonly reflector: Reflector) {}
+    constructor(private reflector: Reflector) {}
 
-    canActivate(context: ExecutionContext): boolean {
-        const roles = this.reflector.get<USER_ROLES[]>(
-            "roles",
+    async canActivate(context: ExecutionContext): Promise<boolean> {
+        const roles = this.reflector.get<string[]>(
+            "role",
             context.getHandler()
         );
 
-        if (_.isEmpty(roles)) {
+        if (!roles) {
             return true;
         }
 
         const request = context.switchToHttp().getRequest();
-        const user = <IGarden>request.user;
+        const bearerHeader = request.headers.authorization;
+        if (!bearerHeader) {
+            throw new HttpException("Unauthorized", HttpStatus.UNAUTHORIZED);
+        }
+        const bearer = bearerHeader.split(" ");
+        const token = bearer[1];
 
-        return roles.includes(user.role);
+        const payload: any = await verifyAccessJWT(token);
+
+        return roles.includes(payload.role);
     }
 }

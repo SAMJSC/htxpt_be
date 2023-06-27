@@ -1,5 +1,5 @@
-import { UsersController as CustomersController } from "@modules/users/customers.controller";
-import { UsersService as CustomersService } from "@modules/users/customers.service";
+import { CustomersController as CustomersController } from "@modules/customers/customers.controller";
+import { CustomersService as CustomersService } from "@modules/customers/customers.service";
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { Customer, CustomerSchema } from "schemas/customer.schema";

@@ -1,6 +1,6 @@
-import { UsersService } from "@modules/users/customers.service";
-import { CreateCustomerDto } from "@modules/users/dtos/create-сustomer.dto";
-import { UpdateUserDto } from "@modules/users/dtos/update-customer.dto";
+import { CustomersService } from "@modules/customers/customers.service";
+import { CreateCustomerDto } from "@modules/customers/dtos/create-сustomer.dto";
+import { UpdateUserDto } from "@modules/customers/dtos/update-customer.dto";
 import {
     Body,
     Controller,
@@ -16,15 +16,17 @@ import {
 } from "@nestjs/common";
 
 @Controller("customer")
-export class UsersController {
-    constructor(private readonly usersService: UsersService) {}
+export class CustomersController {
+    constructor(private readonly customersService: CustomersService) {}
 
     @Post("/create")
     async addCustomer(
         @Res() res: any,
         @Body() createUserDto: CreateCustomerDto
     ) {
-        const customer = await this.usersService.createUser(createUserDto);
+        const customer = await this.customersService.createCustomer(
+            createUserDto
+        );
         return res.status(HttpStatus.OK).json({
             message: "Customer has been created successfully",
             customer,
@@ -33,13 +35,13 @@ export class UsersController {
 
     @Get()
     async getAllCustomer(@Res() res: any) {
-        const customers = await this.usersService.getAllCustomer();
+        const customers = await this.customersService.getAllCustomer();
         return res.status(HttpStatus.OK).json(customers);
     }
 
     @Get(":userID")
     async getCustomer(@Res() res: any, @Param("userID") userID: string) {
-        const customer = await this.usersService.getCustomer(userID);
+        const customer = await this.customersService.getCustomer(userID);
         if (!customer) throw new NotFoundException("Customer does not exist!");
         return res.status(HttpStatus.OK).json(customer);
     }
@@ -50,7 +52,7 @@ export class UsersController {
         @Query("userID") userID,
         @Body() updateUserDto: UpdateUserDto
     ) {
-        const customer = await this.usersService.updateCustomer(
+        const customer = await this.customersService.updateCustomer(
             userID,
             updateUserDto
         );
@@ -63,7 +65,7 @@ export class UsersController {
 
     @Delete("/delete")
     async deleteCustomer(@Res() res: any, @Query("userID") userID: string) {
-        const customer = await this.usersService.deleteCustomer(userID);
+        const customer = await this.customersService.deleteCustomer(userID);
         if (!customer) throw new NotFoundException("Customer does not exist");
         return res.status(HttpStatus.OK).json({
             message: "Customer has been deleted",
