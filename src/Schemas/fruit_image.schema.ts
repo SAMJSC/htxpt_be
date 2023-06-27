@@ -1,15 +1,15 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { HydratedDocument } from "mongoose";
 
-export type FruitImagesDocument = HydratedDocument<FruitImages>;
+export type FruitImageDocument = HydratedDocument<FruitImage>;
 
 @Schema({
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
     collection: "fruits_images",
 })
-export class FruitImages {
+export class FruitImage {
     @Prop()
     url: string;
 }
 
-export const FruitImagesSchema = SchemaFactory.createForClass(FruitImages);
+export const FruitImageSchema = SchemaFactory.createForClass(FruitImage);

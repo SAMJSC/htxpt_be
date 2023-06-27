@@ -6,13 +6,15 @@ import {
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { BaseSchema } from "@shared/base.schema";
 import { Exclude, Expose } from "class-transformer";
+import { Max, Min } from "class-validator";
 import { NextFunction } from "express";
 import mongoose, { HydratedDocument, Model } from "mongoose";
+import { Bonsai } from "schemas/bonsai_tree.schema";
 import {
     DeviceSession,
     DeviceSessionDocument,
 } from "schemas/device_session.schema";
-import { Fruits } from "schemas/fruits.schema";
+import { Fruit } from "schemas/fruit.schema";
 
 export type GardensDocument = HydratedDocument<Garden>;
 
@@ -22,6 +24,11 @@ export type GardensDocument = HydratedDocument<Garden>;
     toJSON: {
         virtuals: true,
         getters: true,
+        transform: (doc, ret) => {
+            delete ret.password;
+            delete ret.reset_token;
+            return ret;
+        },
     },
 })
 export class Garden extends BaseSchema {
@@ -96,6 +103,8 @@ export class Garden extends BaseSchema {
     reset_token?: string;
 
     @Prop({ default: 0 })
+    @Min(1)
+    @Max(5)
     rating_avg?: number;
 
     @Prop({ default: 0 })
@@ -117,10 +126,18 @@ export class Garden extends BaseSchema {
     @Prop([
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: Fruits.name,
+            ref: Fruit.name,
         },
     ])
-    fruits?: Fruits[];
+    fruits?: Fruit[];
+
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: Bonsai.name,
+        },
+    ])
+    bonsai?: Bonsai[];
 
     @Prop([
         {
