@@ -1,14 +1,14 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import mongoose, { HydratedDocument } from "mongoose";
-import { Fruits } from "schemas/fruits.schema";
+import { Fruit } from "schemas/fruit.schema";
 
-export type FruitCategoriesDocument = HydratedDocument<FruitCategories>;
+export type FruitCategoryDocument = HydratedDocument<FruitCategory>;
 
 @Schema({
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
     collection: "fruit_categories",
 })
-export class FruitCategories {
+export class FruitCategory {
     @Prop()
     category_name: string;
 
@@ -33,8 +33,7 @@ export class FruitCategories {
             ref: "Fruits",
         },
     ])
-    fruits?: Fruits[];
+    fruits?: Fruit[];
 }
 
-export const FruitCategoriesSchema =
-    SchemaFactory.createForClass(FruitCategories);
+export const FruitCategorySchema = SchemaFactory.createForClass(FruitCategory);
