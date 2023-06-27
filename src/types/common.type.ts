@@ -16,3 +16,10 @@ export type LoginMetadata = {
     ua: string;
     deviceId: string;
 };
+
+export type SessionResponse = {
+    gardenData?: any; // replace with actual type if known
+    accessToken?: string;
+    refreshToken: string;
+    loginMetaData?: LoginMetadata;
+};
