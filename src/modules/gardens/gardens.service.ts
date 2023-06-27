@@ -23,11 +23,10 @@ export class GardensService extends BaseServiceAbstract<Garden> {
     async createGarden(
         createGardenDto: GardenRegistrationDto
     ): Promise<Garden> {
-        const garden = await this.gardenRepository.create({
+        return this.gardenRepository.create({
             ...createGardenDto,
             role: USER_ROLES.GARDENER,
         });
-        return garden;
     }
 
     async getGardenByEmail(email: string): Promise<Garden> {
