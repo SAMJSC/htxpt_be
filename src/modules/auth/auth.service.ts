@@ -19,6 +19,7 @@ import {
     LoginResponseData,
     Session,
 } from "type";
+import { SessionResponse } from "types/common.type";
 import { promisify } from "util";
 import {
     generateAccessJWT,
@@ -153,7 +154,10 @@ export class AuthService {
         return { accessToken };
     }
 
-    async createSession(garden: Garden, loginMetaData: LoginMetadata) {
+    async createSession(
+        garden: Garden,
+        loginMetaData: LoginMetadata
+    ): Promise<SessionResponse> {
         const { gardenData, accessToken, refreshToken } =
             await this.generateResponseLoginData(garden);
 
@@ -210,11 +214,13 @@ export class AuthService {
     async gardenRegistration(
         gardenRegistrationDto: GardenRegistrationDto
     ): Promise<Garden> {
-        const { password, confirm_password } = gardenRegistrationDto;
+        const { password, confirm_password, email, phone } =
+            gardenRegistrationDto;
 
-        const existedEmail = await this.gardenService.findOneByCondition({
-            email: gardenRegistrationDto.email,
-        });
+        const [existedEmail, existedPhone] = await Promise.all([
+            this.gardenService.findOneByCondition({ email }),
+            this.gardenService.findOneByCondition({ phone }),
+        ]);
 
         if (existedEmail) {
             throw new HttpException(
@@ -222,10 +228,6 @@ export class AuthService {
                 HttpStatus.CONFLICT
             );
         }
-
-        const existedPhone = await this.gardenService.findOneByCondition({
-            phone: gardenRegistrationDto.phone,
-        });
 
         if (existedPhone) {
             throw new HttpException(
@@ -254,7 +256,7 @@ export class AuthService {
     async gardenLogin(
         gardenLoginDto: GardenLoginDto,
         loginMetaData: LoginMetadata
-    ) {
+    ): Promise<SessionResponse> {
         const { phone } = gardenLoginDto;
         const garden = await this.gardenService.findOneByCondition({ phone });
         if (
@@ -291,10 +293,7 @@ export class AuthService {
         };
     }
 
-    async changePassword(
-        phone: string,
-        changePasswordDto: ChangePasswordDto
-    ): Promise<void> {
+    async changePassword(phone: string, changePasswordDto: ChangePasswordDto) {
         const garden = await this.gardenService.findOneByCondition({
             phone: phone,
         });
@@ -319,18 +318,9 @@ export class AuthService {
             changePasswordDto.newPassword
         );
 
-        const newPassword = await this.hashPassword(
-            changePasswordDto.newPassword
-        );
-
-        const updatePasswordDto = {
-            password: newPassword,
-        };
-
-        await this.gardenService.update(
-            garden._id.toString(),
-            updatePasswordDto
-        );
+        await this.gardenService.update(garden._id.toString(), {
+            password: garden.password,
+        });
     }
 
     async getCurrentUser(email: string): Promise<Garden> {

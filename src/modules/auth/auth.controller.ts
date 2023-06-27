@@ -9,6 +9,8 @@ import {
     Controller,
     Get,
     Headers,
+    HttpException,
+    HttpStatus,
     Patch,
     Post,
     Req,
@@ -17,7 +19,8 @@ import {
 } from "@nestjs/common";
 import { GardenDecorator } from "decorators/current-garden.decorator";
 import { Garden as Garden } from "schemas/garden.schema";
-import { LoginMetadata } from "types/common.type";
+import { GenerateAccessJWTData } from "type";
+import { LoginMetadata, SessionResponse } from "types/common.type";
 
 @Controller("auth")
 export class AuthController {
@@ -36,7 +39,7 @@ export class AuthController {
         @Req() req: any,
         @Body() gardenLoginDto: GardenLoginDto,
         @Headers() headers: Headers
-    ) {
+    ): Promise<SessionResponse> {
         const ipAddress = req.connection.remoteAddress;
         const ua = headers["user-agent"];
         const { deviceId } = req;
@@ -48,7 +51,7 @@ export class AuthController {
     async generateNewAccessJWT(
         @Body() refreshTokenDto: RefreshTokenDto,
         @Req() req: any
-    ) {
+    ): Promise<GenerateAccessJWTData> {
         const { deviceId } = req;
         return await this.authService.generateNewAccessJWT(
             deviceId,
@@ -60,8 +63,22 @@ export class AuthController {
     async changePassword(
         @GardenDecorator() garden: Garden,
         @Body() changePasswordDto: ChangePasswordDto
-    ): Promise<void> {
-        await this.authService.changePassword(garden.phone, changePasswordDto);
+    ) {
+        try {
+            await this.authService.changePassword(
+                garden.phone,
+                changePasswordDto
+            );
+            return {
+                message: "Password successfully updated",
+            };
+        } catch (error) {
+            throw new HttpException(
+                error.message ||
+                    "An error occurred while changing the password",
+                error.status || HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
     }
 
     @Post("gardens/logout")

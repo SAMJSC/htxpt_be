@@ -27,6 +27,10 @@ export type GardensDocument = HydratedDocument<Garden>;
         transform: (doc, ret) => {
             delete ret.password;
             delete ret.reset_token;
+            delete ret.rating_quantity;
+            delete ret.deleted_at;
+            delete ret.id;
+            delete ret.device_sessions;
             return ret;
         },
     },

@@ -19,6 +19,7 @@ export class GardensService extends BaseServiceAbstract<Garden> {
     ) {
         super(gardenRepository);
     }
+
     async createGarden(
         createGardenDto: GardenRegistrationDto
     ): Promise<Garden> {
