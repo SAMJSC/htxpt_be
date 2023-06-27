@@ -49,20 +49,20 @@ export class GardensService extends BaseServiceAbstract<Garden> {
         }
     }
 
-    async updateUser(
+    async updateGarden(
         id: string,
         updateGardenDto: UpdateGardenDto
     ): Promise<Garden> {
-        const user = await this.gardenRepository.findOneById(id);
-        if (!user) {
+        const garden = await this.gardenRepository.findOneById(id);
+        if (!garden) {
             throw new HttpException(
-                `User with id ${id} not found`,
+                `Garden with id ${id} not found`,
                 HttpStatus.NOT_FOUND
             );
         }
-        Object.assign(user, updateGardenDto);
-        await this.gardenRepository.create(user);
-        return user;
+        Object.assign(garden, updateGardenDto);
+        await this.gardenRepository.create(garden);
+        return garden;
     }
 
     async deleteGarden(id: string) {
