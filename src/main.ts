@@ -20,7 +20,7 @@ async function bootstrap() {
     const logger = new Logger(bootstrap.name);
     const app = await NestFactory.create(AppModule);
     const configService = app.get(ConfigService);
-
+    console.log("ConfigService", process.env);
     app.enableCors();
     app.use(helmet());
 

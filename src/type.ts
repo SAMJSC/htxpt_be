@@ -1,5 +1,5 @@
 import { USER_ROLES } from "@constants/common.constants";
-import { Garden } from "schemas/garden.schema";
+import { Garden } from "@schemas/garden.schema";
 export type Constructor<T, Arguments extends unknown[] = undefined[]> = new (
     ...arguments_: Arguments
 ) => T;

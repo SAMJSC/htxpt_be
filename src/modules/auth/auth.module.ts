@@ -1,4 +1,5 @@
 import { AuthService } from "@modules/auth/auth.service";
+import { FruitsModule } from "@modules/fruits/fruits.module";
 import { GardensModule } from "@modules/gardens/gardens.module";
 import { GardensService } from "@modules/gardens/gardens.service";
 import { CacheModule } from "@nestjs/cache-manager";
@@ -22,6 +23,7 @@ import { LocalStrategy } from "strategegies/local.strategy";
         ]),
         CacheModule.register(),
         GardensModule,
+        FruitsModule,
         PassportModule,
     ],
     providers: [
