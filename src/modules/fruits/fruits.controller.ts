@@ -1,7 +1,9 @@
 import { USER_ROLES } from "@constants/common.constants";
 import { JwtAuthGuard } from "@guards/jwt-auth.guard";
 import { RolesGuard } from "@guards/roles.guard";
+import { CreateFruitSpecialDto } from "@modules/fruits/dtos/create-fruit-special.dto";
 import { CreateFruitsDto } from "@modules/fruits/dtos/create-fruits.dto";
+import { UpdateFruitSpecialDto } from "@modules/fruits/dtos/update-fruit-special.dto";
 import { UpdateFruitsDto } from "@modules/fruits/dtos/update-fruits.dto";
 import { FruitsService } from "@modules/fruits/fruits.service";
 import {
@@ -43,10 +45,33 @@ export class FruitsController {
         });
     }
 
+    @Post("/create-special")
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.GARDENER)
+    async addFruitSpecial(
+        @Res() res: any,
+        @Body() createFruitSpecialDto: CreateFruitSpecialDto,
+        @GardenDecorator() garden: Garden
+    ) {
+        const fruitSpecial = await this.fruitsService.createFruitSpecial(
+            createFruitSpecialDto,
+            garden._id.toString()
+        );
+        return res.status(HttpStatus.OK).json({
+            message: "fruit has been created successfully",
+            fruitSpecial,
+        });
+    }
+
     @Get()
     async getAllFruit(@Res() res: any) {
         const fruits = await this.fruitsService.getAllFruit();
         return res.status(HttpStatus.OK).json(fruits);
+    }
+    @Get("/special")
+    async getAllFruitSpecial(@Res() res: any) {
+        const fruitSpecial = await this.fruitsService.getAllFruitSpecial();
+        return res.status(HttpStatus.OK).json(fruitSpecial);
     }
 
     @Get(":fruitID")
@@ -54,6 +79,19 @@ export class FruitsController {
         const fruit = await this.fruitsService.getFruitsById(fruitID);
         if (!fruit) throw new NotFoundException("fruit does not exist!");
         return res.status(HttpStatus.OK).json(fruit);
+    }
+
+    @Get("/special/:fruitSpecialID")
+    async getFruitSpecialById(
+        @Res() res: any,
+        @Param("fruitSpecialID") fruitSpecialID: string
+    ) {
+        const fruitSpecial = await this.fruitsService.getFruitSpecialById(
+            fruitSpecialID
+        );
+        if (!fruitSpecial)
+            throw new NotFoundException("fruit Special does not exist!");
+        return res.status(HttpStatus.OK).json(fruitSpecial);
     }
 
     @Patch("/update/:fruitID")
@@ -73,6 +111,24 @@ export class FruitsController {
         });
     }
 
+    @Patch("/update/special/:fruitSpecialID")
+    async updateFruitSpecial(
+        @Res() res,
+        @Param("fruitSpecialID") fruitSpecialID: string,
+        @Body() updateFruitSpecial: UpdateFruitSpecialDto
+    ) {
+        const fruitSpecial = await this.fruitsService.updateFruitSpecial(
+            fruitSpecialID,
+            updateFruitSpecial
+        );
+        if (!fruitSpecial)
+            throw new NotFoundException("fruit Special does not exist!");
+        return res.status(HttpStatus.OK).json({
+            message: "fruit Special has been successfully updated",
+            fruitSpecial,
+        });
+    }
+
     @Delete("/delete/:fruitID")
     async deleteFruit(@Res() res: any, @Param("fruitID") fruitID: string) {
         const fruit = await this.fruitsService.deleteFruits(fruitID);
@@ -80,6 +136,22 @@ export class FruitsController {
         return res.status(HttpStatus.OK).json({
             message: "fruit has been deleted",
             fruit,
+        });
+    }
+
+    @Delete("/delete/special/:fruitSpecialID")
+    async deleteFruitSpecial(
+        @Res() res: any,
+        @Param("fruitSpecialID") fruitSpecialID: string
+    ) {
+        const fruitSpecial = await this.fruitsService.deleteFruitSpecial(
+            fruitSpecialID
+        );
+        if (!fruitSpecial)
+            throw new NotFoundException("fruit Special does not exist");
+        return res.status(HttpStatus.OK).json({
+            message: "fruit has been deleted",
+            fruitSpecial,
         });
     }
 }
