@@ -8,6 +8,7 @@ import { ConfigService } from "@nestjs/config";
 import { NestFactory, Reflector } from "@nestjs/core";
 import { rateLimit } from "express-rate-limit";
 import { HttpExceptionFilter } from "filters/bad-request.filter";
+import { DuplicateKeyFilter } from "filters/mongo-error.filter";
 import { QueryFailedFilter } from "filters/query-fail.filter";
 import { get, x64hash128 } from "fingerprintjs2";
 import helmet from "helmet";
@@ -19,7 +20,7 @@ async function bootstrap() {
     const logger = new Logger(bootstrap.name);
     const app = await NestFactory.create(AppModule);
     const configService = app.get(ConfigService);
-
+    console.log("ConfigService", process.env);
     app.enableCors();
     app.use(helmet());
 
@@ -38,7 +39,8 @@ async function bootstrap() {
 
     app.useGlobalFilters(
         new HttpExceptionFilter(reflector),
-        new QueryFailedFilter(reflector)
+        new QueryFailedFilter(reflector),
+        new DuplicateKeyFilter()
     );
 
     app.useGlobalPipes(

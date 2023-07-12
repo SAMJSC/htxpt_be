@@ -40,8 +40,7 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
         return false;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    handleRequest(err, user, info) {
+    handleRequest(err: any, user: any) {
         if (err || !user) {
             throw (
                 err ||

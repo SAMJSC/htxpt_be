@@ -25,7 +25,8 @@
             "@models/*": ["models/*"],
             "@shared/*": ["shared/*"],
             "@modules/*": ["modules/*"],
-            "@repositories/*": ["repositories/*"]
+            "@repositories/*": ["repositories/*"],
+            "@schemas/*": ["schemas/*"]
         }
     },
     "include": ["src/**/*", "src/abis/*.json", "test/**/*.ts", "ormconfig.ts"],
