@@ -10,6 +10,9 @@ export type FruitImageDocument = HydratedDocument<FruitImage>;
 export class FruitImage {
     @Prop()
     url: string;
+
+    @Prop()
+    public_id: string;
 }
 
 export const FruitImageSchema = SchemaFactory.createForClass(FruitImage);

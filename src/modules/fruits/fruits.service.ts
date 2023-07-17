@@ -1,3 +1,4 @@
+import { CloudinaryService } from "@modules/cloudinary/cloudinary.service";
 import { CreateFruitSpecialDto } from "@modules/fruits/dtos/create-fruit-special.dto";
 import { CreateFruitsDto } from "@modules/fruits/dtos/create-fruits.dto";
 import { UpdateFruitSpecialDto } from "@modules/fruits/dtos/update-fruit-special.dto";
@@ -10,6 +11,8 @@ import {
     FruitCategory,
     FruitCategoryDocument,
 } from "@schemas/fruit_categorie.chema";
+import { FruitImage } from "@schemas/fruit_image.schema";
+import { Express } from "express";
 import { Model } from "mongoose";
 
 @Injectable()
@@ -20,14 +23,30 @@ export class FruitsService {
         @InjectModel(FruitSpecial.name)
         private fruitSpecialModel: Model<FruitSpecial>,
         @InjectModel(FruitCategory.name)
-        private readonly fruitCategoryModel: Model<FruitCategoryDocument>
+        private readonly fruitCategoryModel: Model<FruitCategoryDocument>,
+        private cloudinaryService: CloudinaryService,
+        @InjectModel(FruitImage.name)
+        private fruitImage: Model<FruitImage>
     ) {}
 
     async createFruit(
         createFruitDto: CreateFruitsDto,
-        gardens: any
+        gardens: any,
+        image?: Express.Multer.File
     ): Promise<void> {
         try {
+            let newImage;
+            if (image) {
+                const uploadResult = await this.cloudinaryService.uploadFile(
+                    image
+                );
+                newImage = new this.fruitImage({
+                    url: uploadResult.url,
+                    public_id: uploadResult.public_id,
+                });
+                await newImage.save();
+            }
+
             const fruitCategory = new this.fruitCategoryModel({
                 category_name: createFruitDto.fruit_category_name,
                 range_price: createFruitDto.range_price,
@@ -46,6 +65,7 @@ export class FruitsService {
                     ...createFruitDto,
                     gardens: gardens,
                     fruit_categories: checkFruitCategory,
+                    fruit_images: newImage ? newImage._id : null,
                 });
                 await createFruit.save();
             } else {
@@ -53,6 +73,7 @@ export class FruitsService {
                     ...createFruitDto,
                     gardens: gardens,
                     fruit_categories: fruitCategory,
+                    fruit_images: newImage ? newImage._id : null,
                 });
                 Promise.all([
                     await fruitCategory.save(),
@@ -69,6 +90,7 @@ export class FruitsService {
             throw error;
         }
     }
+
     async createFruitSpecial(
         createFruitDto: CreateFruitSpecialDto,
         gardens: any
@@ -100,12 +122,18 @@ export class FruitsService {
     }
 
     async getAllFruit(): Promise<Fruit[]> {
-        const fruits = await this.fruitModel.find().exec();
+        const fruits = await this.fruitModel
+            .find()
+            .populate("fruit_images")
+            .exec();
         return fruits;
     }
 
     async getFruitsById(fruitID: string): Promise<Fruit> {
-        return await this.fruitModel.findById(fruitID).exec();
+        return await this.fruitModel
+            .findById(fruitID)
+            .populate("fruit_images")
+            .exec();
     }
 
     async getFruitSpecialById(fruitSpecialID: string): Promise<FruitSpecial> {
@@ -114,12 +142,27 @@ export class FruitsService {
 
     async updateFruits(
         fruitID: string,
-        updateFruitsDto: UpdateFruitsDto
+        updateFruitsDto: UpdateFruitsDto,
+        image?: Express.Multer.File // add this line
     ): Promise<Fruit> {
+        let newImage;
+
+        if (image) {
+            const uploadResult = await this.cloudinaryService.uploadFile(image);
+            newImage = new this.fruitImage({
+                url: uploadResult.url,
+                public_id: uploadResult.public_id,
+            });
+            await newImage.save();
+
+            updateFruitsDto.fruit_images = newImage._id;
+        }
+
         const updatedFruits = await this.fruitModel.findByIdAndUpdate(
             fruitID,
             updateFruitsDto
         );
+
         const fruitNew = await this.fruitModel.findById(updatedFruits.id);
         return fruitNew;
     }
@@ -140,8 +183,24 @@ export class FruitsService {
     }
 
     async deleteFruits(fruitID: string): Promise<any> {
-        const deletedFruits = await this.fruitModel.findByIdAndRemove(fruitID);
-        return deletedFruits;
+        const fruit = await this.fruitModel.findById(fruitID);
+        const fruitImage = await this.fruitImage.findById(fruit.fruit_images);
+
+        if (fruit) {
+            await this.cloudinaryService.deleteFile(fruitImage.public_id);
+
+            await this.fruitImage.findByIdAndRemove(fruit.fruit_images);
+
+            const deletedFruits = await this.fruitModel.findByIdAndRemove(
+                fruitID
+            );
+            return deletedFruits;
+        } else {
+            throw new HttpException(
+                `Fruit with ID ${fruitID} not found`,
+                HttpStatus.NOT_FOUND
+            );
+        }
     }
 
     async deleteFruitSpecial(fruitSpecialID: string): Promise<any> {

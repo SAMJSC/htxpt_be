@@ -45,7 +45,7 @@ export class Fruit {
 
     @Prop({
         type: mongoose.Schema.Types.ObjectId,
-        ref: "FruitImages",
+        ref: "FruitImage",
         required: false,
     })
     fruit_images?: FruitImage;
