@@ -9,6 +9,7 @@ import Joi from "joi";
 import { LocalStrategy } from "strategegies/local.strategy";
 
 import { AuthController } from "./modules/auth/auth.controller";
+import { CloudinaryModule } from "./modules/cloudinary/cloudinary.module";
 
 const modules = [...MODULES];
 
@@ -37,6 +38,7 @@ const modules = [...MODULES];
             expandVariables: true,
         }),
         ...modules,
+        CloudinaryModule,
     ],
     providers: [
         LocalStrategy,

@@ -15,7 +15,7 @@ export class UpdateFruitsDto {
     readonly fruit_categories: mongoose.Schema.Types.ObjectId;
 
     @IsOptional()
-    readonly fruit_images: mongoose.Schema.Types.ObjectId;
+    fruit_images: mongoose.Schema.Types.ObjectId;
 
     @IsOptional()
     @IsString()
