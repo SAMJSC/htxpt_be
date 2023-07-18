@@ -1,3 +1,4 @@
+import { HealthCheckModule } from "@modules/health-check/health-check.module";
 import { MODULES } from "@modules/index";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
@@ -39,6 +40,7 @@ const modules = [...MODULES];
         }),
         ...modules,
         CloudinaryModule,
+        HealthCheckModule,
     ],
     providers: [
         LocalStrategy,
