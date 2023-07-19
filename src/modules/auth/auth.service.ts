@@ -1,4 +1,7 @@
 import { USER_ROLES } from "@constants/common.constants";
+import { AdminService } from "@modules/admin/admin.service";
+import { AdminLoginDto } from "@modules/auth/dtos/admin-login.dto";
+import { AdminRegistrationDto } from "@modules/auth/dtos/admin-registration.dto";
 import { ChangePasswordDto } from "@modules/auth/dtos/change-password.dto";
 import { GardenLoginDto } from "@modules/auth/dtos/garden-login.dto";
 import { GardenRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
@@ -7,6 +10,7 @@ import { GardensService } from "@modules/gardens/gardens.service";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
+import { Admin } from "@schemas/admin.schema";
 import * as bcrypt from "bcrypt";
 import { Cache } from "cache-manager";
 import { scrypt } from "crypto";
@@ -33,6 +37,7 @@ export class AuthService {
         @InjectModel(DeviceSession.name)
         private readonly deviceSessionModel: Model<DeviceSession>,
         private readonly gardenService: GardensService,
+        private readonly adminService: AdminService,
         @Inject(CACHE_MANAGER)
         private cacheManager: Cache
     ) {}
@@ -64,28 +69,36 @@ export class AuthService {
         return garden;
     }
 
-    isDifferentGarden(session: Session, garden: Garden) {
-        return session.garden._id.toString() !== garden._id.toString();
+    isDifferentUser(session: Session, garden: Admin | Garden) {
+        if (session.gardener) {
+            return session.gardener._id.toString() !== garden._id.toString();
+        }
+        if (session.admin) {
+            return session.admin._id.toString() !== garden._id.toString();
+        }
+        if (session.super_admin) {
+            return session.super_admin._id.toString() !== garden._id.toString();
+        }
     }
 
     async generateResponseLoginData(
-        garden: Garden
+        user: Admin | Garden
     ): Promise<LoginResponseData> {
-        const gardenData = {
-            ...(garden as any).toObject(),
-            role: garden.role ? garden.role : USER_ROLES.GARDENER,
+        const userData = {
+            ...(user as any).toObject(),
+            role: user.role ? user.role : USER_ROLES.GARDENER,
         };
 
-        delete gardenData.reset_token;
-        delete gardenData.password;
+        delete userData.reset_token;
+        delete userData.password;
         let accessToken: string;
         let refreshToken: string;
 
         try {
-            accessToken = generateAccessJWT(gardenData, {
+            accessToken = generateAccessJWT(userData, {
                 expiresIn: Number(process.env.ACCESS_TOKEN_EXPIRE_IN_SEC),
             });
-            refreshToken = generateRefreshJWT(gardenData, {
+            refreshToken = generateRefreshJWT(userData, {
                 expiresIn: Number(process.env.REFRESH_TOKEN_EXPIRE_IN_SEC),
             });
         } catch (error) {
@@ -98,7 +111,7 @@ export class AuthService {
         return {
             accessToken,
             refreshToken,
-            gardenData: gardenData,
+            userData,
         };
     }
 
@@ -110,12 +123,12 @@ export class AuthService {
     }
 
     async checkPassword(
-        gardenPassword: string,
+        userPassword: string,
         hashedPassword: string
     ): Promise<boolean> {
         const [salt, storedHash] = hashedPassword.split("#");
         const hash = (await promisify(scrypt)(
-            gardenPassword,
+            userPassword,
             salt,
             32
         )) as Buffer;
@@ -127,8 +140,10 @@ export class AuthService {
         refreshTokenDto: RefreshTokenDto
     ): Promise<GenerateAccessJWTData> {
         const { refreshToken } = refreshTokenDto;
+
         const session: any = await this.getSession(
             deviceId,
+            undefined,
             undefined,
             refreshToken
         );
@@ -155,15 +170,17 @@ export class AuthService {
     }
 
     async createSession(
-        garden: Garden,
-        loginMetaData: LoginMetadata
+        user: Admin | Garden,
+        loginMetaData: LoginMetadata,
+        service: AdminService | GardensService
     ): Promise<SessionResponse> {
-        const { gardenData, accessToken, refreshToken } =
-            await this.generateResponseLoginData(garden);
+        const { userData, accessToken, refreshToken } =
+            await this.generateResponseLoginData(user);
 
         const session = await this.getSession(
             loginMetaData.deviceId,
-            garden.id
+            user.role,
+            user.id
         );
         const refreshTokenExpireAtMs =
             Date.now() + Number(process.env.REFRESH_TOKEN_EXPIRE_IN_SEC) * 1000;
@@ -171,22 +188,22 @@ export class AuthService {
         const newDevice = await this.deviceSessionModel.create({
             device_id: loginMetaData.deviceId,
             ip_address: session ? session.ip_address : loginMetaData.ipAddress,
-            garden: garden,
+            gardener: user.role === USER_ROLES.GARDENER ? user : null,
+            admin: user.role === USER_ROLES.ADMIN ? user : null,
+            super_admin: user.role === USER_ROLES.SUPER_ADMIN ? user : null,
             expired_at: new Date(refreshTokenExpireAtMs),
             ua: loginMetaData.ua,
             refresh_token: refreshToken,
         });
 
-        const gardenUpdate = await this.gardenService.findOne(
-            garden._id.toString()
-        );
+        const userUpdate = await service.findOne(user._id.toString());
 
-        gardenUpdate.device_sessions.push(newDevice);
+        userUpdate.device_sessions.push(newDevice);
 
-        await this.gardenService.update(garden._id.toString(), gardenUpdate);
+        await service.update(user._id.toString(), userUpdate);
 
         return {
-            gardenData,
+            userData,
             accessToken,
             refreshToken,
             loginMetaData,
@@ -195,36 +212,53 @@ export class AuthService {
 
     async getSession(
         deviceId: string,
+        userRole: USER_ROLES,
         gardenID?: string,
         refreshToken?: string
     ) {
         const query = { device_id: deviceId };
 
         if (gardenID) {
-            query["garden"] = gardenID;
+            query[userRole] = gardenID;
         }
 
         if (refreshToken) {
             query["refresh_token"] = refreshToken;
         }
+
         const session = await this.deviceSessionModel.findOne(query);
+
         return session;
     }
 
-    async gardenRegistration(
-        gardenRegistrationDto: GardenRegistrationDto
-    ): Promise<Garden> {
-        const { password, confirm_password, email, phone } =
-            gardenRegistrationDto;
+    private async checkExistence(
+        service: GardensService | AdminService,
+        email: string,
+        username = null,
+        phone = null
+    ) {
+        const checks = [
+            service.findOneByCondition({ email }),
+            username
+                ? service.findOneByCondition({ user_name: username })
+                : null,
+            phone ? service.findOneByCondition({ phone }) : null,
+        ];
 
-        const [existedEmail, existedPhone] = await Promise.all([
-            this.gardenService.findOneByCondition({ email }),
-            this.gardenService.findOneByCondition({ phone }),
-        ]);
+        const [existedEmail, existedUser, existedPhone] = await Promise.all(
+            checks
+        );
 
         if (existedEmail) {
             throw new HttpException(
                 "Email already existed!!",
+                HttpStatus.CONFLICT
+            );
+        }
+
+        if (existedUser) {
+            throw new HttpException(
+                "Username already existed!!",
                 HttpStatus.CONFLICT
             );
         }
@@ -235,57 +269,89 @@ export class AuthService {
                 HttpStatus.CONFLICT
             );
         }
+    }
 
+    private checkPasswordMatch(password: string, confirm_password: string) {
         if (password !== confirm_password) {
             throw new HttpException(
                 "Password and Confirm Password do not match",
                 HttpStatus.BAD_REQUEST
             );
         }
+    }
+
+    async registration(
+        service: GardensService | AdminService,
+        dto: GardenRegistrationDto | AdminRegistrationDto,
+        creationMethod: string
+    ): Promise<Admin | Garden> {
+        const { password, confirm_password, email } = dto;
+
+        const userName = "user_name" in dto ? dto.user_name : null;
+        const phone = "phone" in dto ? dto.phone : null;
+
+        await this.checkExistence(service, email, userName, phone);
+        this.checkPasswordMatch(password, confirm_password);
 
         const hashedPassword = await this.hashPassword(password);
 
-        const savedGarden = this.gardenService.createGarden({
-            ...gardenRegistrationDto,
+        return service[creationMethod]({
+            ...dto,
             password: hashedPassword,
         });
-
-        return savedGarden;
     }
 
-    async gardenLogin(
-        gardenLoginDto: GardenLoginDto,
+    async login(
+        service: GardensService | AdminService,
+        loginDto: GardenLoginDto | AdminLoginDto,
         loginMetaData: LoginMetadata
     ): Promise<SessionResponse> {
-        const { phone } = gardenLoginDto;
-        const garden = await this.gardenService.findOneByCondition({ phone });
+        let identifier;
+
+        if (service instanceof GardensService) {
+            if (!("phone" in loginDto) || !loginDto.phone) {
+                throw new HttpException(
+                    "Phone number is required for garden users",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+            identifier = { phone: loginDto.phone };
+        } else if (service instanceof AdminService) {
+            if (!("user_name" in loginDto) || !loginDto.user_name) {
+                throw new HttpException(
+                    "Username is required for admin users",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+            identifier = { user_name: loginDto.user_name };
+        }
+
+        const user = await service.findOneByCondition(identifier);
+
         if (
-            await this.checkPassword(garden.password, gardenLoginDto.password)
+            !user ||
+            !(await this.checkPassword(loginDto.password, user.password))
         ) {
             throw new HttpException(
-                "Password is invalid",
+                "Invalid credentials",
                 HttpStatus.BAD_REQUEST
             );
         }
 
         const session = await this.getSession(
             loginMetaData.deviceId,
-            garden._id.toString(),
+            user.role,
+            user._id.toString(),
             undefined
         );
 
-        if (session) {
-            if (new Date(session.expired_at).getTime() < Date.now()) {
-                await this.deviceSessionModel.deleteOne(session._id);
-                throw new HttpException(
-                    "Session expired",
-                    HttpStatus.UNAUTHORIZED
-                );
-            }
+        if (session && new Date(session.expired_at).getTime() < Date.now()) {
+            await this.deviceSessionModel.deleteOne(session._id);
+            throw new HttpException("Session expired", HttpStatus.UNAUTHORIZED);
         }
 
-        if (!session || this.isDifferentGarden(session, garden)) {
-            return await this.createSession(garden, loginMetaData);
+        if (!session || this.isDifferentUser(session, user)) {
+            return await this.createSession(user, loginMetaData, service);
         }
 
         return {
@@ -293,18 +359,22 @@ export class AuthService {
         };
     }
 
-    async changePassword(phone: string, changePasswordDto: ChangePasswordDto) {
-        const garden = await this.gardenService.findOneByCondition({
-            phone: phone,
+    async changePassword(
+        email: string,
+        changePasswordDto: ChangePasswordDto,
+        service: GardensService | AdminService
+    ) {
+        const user = await service.findOneByCondition({
+            email,
         });
 
-        if (!garden) {
+        if (!user) {
             throw new HttpException("Garden not found", HttpStatus.NOT_FOUND);
         }
 
         const isOldPasswordValid = await this.checkPassword(
             changePasswordDto.oldPassword,
-            garden.password
+            user.password
         );
 
         if (!isOldPasswordValid) {
@@ -314,31 +384,39 @@ export class AuthService {
             );
         }
 
-        garden.password = await this.hashPassword(
-            changePasswordDto.newPassword
-        );
+        user.password = await this.hashPassword(changePasswordDto.newPassword);
 
-        await this.gardenService.update(garden._id.toString(), {
-            password: garden.password,
+        await this.gardenService.update(user._id.toString(), {
+            password: user.password,
         });
     }
 
-    async getCurrentUser(email: string): Promise<Garden> {
-        const user = this.gardenService.getGardenByEmail(email);
+    async getCurrentUser(
+        service: AdminService | GardensService,
+        email: string
+    ): Promise<Garden | Admin> {
+        const user = service.findOneByCondition({ email });
+        if (!user) {
+            throw new HttpException("Not found", HttpStatus.NOT_FOUND);
+        }
         return user;
     }
 
-    async logout(gardenID: string, deviceId: string) {
-        const session: any = await this.getSession(deviceId);
-
-        const garden = await this.gardenService.findOneByCondition({
-            id: gardenID,
+    async logout(
+        userId: string,
+        deviceId: string,
+        service: GardensService | AdminService
+    ) {
+        const user = await service.findOneByCondition({
+            id: userId,
         });
 
-        if (!session || !garden) {
+        const session: any = await this.getSession(deviceId, user.role);
+
+        if (!session || !user) {
             throw new HttpException("You need to login", HttpStatus.FORBIDDEN);
         }
-        const keyCache = this.getKeyCache(gardenID, session.id);
+        const keyCache = this.getKeyCache(userId, session.id);
 
         await this.cacheManager.del(keyCache);
         await this.deviceSessionModel.deleteOne(session._id);
