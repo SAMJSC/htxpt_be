@@ -15,6 +15,7 @@ import {
     Controller,
     Get,
     Headers,
+    HttpCode,
     HttpException,
     HttpStatus,
     Patch,
@@ -24,11 +25,11 @@ import {
     ValidationPipe,
 } from "@nestjs/common";
 import { Admin } from "@schemas/admin.schema";
+import { Response } from "@shared/response/response.interface";
 import { UserDecorator } from "decorators/current-garden.decorator";
 import { Roles } from "decorators/roles.decorator";
 import { Garden } from "schemas/garden.schema";
-import { GenerateAccessJWTData } from "type";
-import { LoginMetadata, SessionResponse } from "types/common.type";
+import { LoginMetadata } from "types/common.type";
 
 @Controller("auth")
 export class AuthController {
@@ -39,9 +40,10 @@ export class AuthController {
     ) {}
 
     @Post("gardens/register")
+    @HttpCode(HttpStatus.CREATED)
     async gardenRegistration(
         @Body(ValidationPipe) createUserDto: GardenRegistrationDto
-    ): Promise<Admin | Garden> {
+    ): Promise<Response> {
         return await this.authService.registration(
             this.gardenService,
             createUserDto,
@@ -55,7 +57,7 @@ export class AuthController {
     @Post("admin/register")
     async adminRegistration(
         @Body(ValidationPipe) createUserDto: AdminRegistrationDto
-    ): Promise<Admin | Garden> {
+    ): Promise<Response> {
         return await this.authService.registration(
             this.adminService,
             createUserDto,
@@ -68,7 +70,7 @@ export class AuthController {
         @Req() req: any,
         @Body() gardenLoginDto: GardenLoginDto,
         @Headers() headers: Headers
-    ): Promise<SessionResponse> {
+    ): Promise<Response> {
         const ipAddress = req.connection.remoteAddress;
         const ua = headers["user-agent"];
         const { deviceId } = req;
@@ -86,7 +88,7 @@ export class AuthController {
         @Req() req: any,
         @Body() adminLoginDto: AdminLoginDto,
         @Headers() headers: Headers
-    ): Promise<SessionResponse> {
+    ): Promise<Response> {
         const ipAddress = req.connection.remoteAddress;
         const ua = headers["user-agent"];
         const { deviceId } = req;
@@ -103,7 +105,7 @@ export class AuthController {
     async generateNewAccessJWT(
         @Body() refreshTokenDto: RefreshTokenDto,
         @Req() req: any
-    ): Promise<GenerateAccessJWTData> {
+    ): Promise<Response> {
         const { deviceId } = req;
         return await this.authService.generateNewAccessJWT(
             deviceId,
@@ -115,10 +117,10 @@ export class AuthController {
     async changePassword(
         @UserDecorator() user: Garden | Admin,
         @Body() changePasswordDto: ChangePasswordDto
-    ) {
+    ): Promise<Response> {
         try {
             if (user.role === USER_ROLES.GARDENER) {
-                await this.authService.changePassword(
+                return await this.authService.changePassword(
                     user.email,
                     changePasswordDto,
                     this.gardenService
@@ -126,16 +128,12 @@ export class AuthController {
             }
 
             if (user.role === USER_ROLES.ADMIN) {
-                await this.authService.changePassword(
+                return await this.authService.changePassword(
                     user.email,
                     changePasswordDto,
                     this.adminService
                 );
             }
-
-            return {
-                message: "Password successfully updated",
-            };
         } catch (error) {
             throw new HttpException(
                 error.message ||
@@ -146,7 +144,10 @@ export class AuthController {
     }
 
     @Post("/logout")
-    async logout(@UserDecorator() user: Garden | Admin, @Req() req: any) {
+    async logout(
+        @UserDecorator() user: Garden | Admin,
+        @Req() req: any
+    ): Promise<Response> {
         const { deviceId } = req;
         if (user.role === USER_ROLES.GARDENER) {
             return this.authService.logout(
@@ -166,7 +167,7 @@ export class AuthController {
     }
 
     @Get("/profile")
-    async getCurrentUserInfo(@UserDecorator() user: Garden) {
+    async getCurrentUserInfo(@UserDecorator() user: Garden): Promise<Response> {
         if (user.role === USER_ROLES.GARDENER) {
             return this.authService.getCurrentUser(
                 this.gardenService,

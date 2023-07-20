@@ -17,12 +17,10 @@ export class CreateFruitSpecialDto {
     @Min(0)
     readonly quantity: number;
 
-
     @IsOptional()
     readonly fruit_images: mongoose.Schema.Types.ObjectId;
 
     @IsNotEmpty()
-
     @IsNotEmpty()
     readonly range_price: number[];
 
