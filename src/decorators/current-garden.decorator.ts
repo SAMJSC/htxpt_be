@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { verifyAccessJWT } from "utils/jwt";
 
-export const GardenDecorator = createParamDecorator(
+export const UserDecorator = createParamDecorator(
     async (data: unknown, ctx: ExecutionContext) => {
         const request = ctx.switchToHttp().getRequest();
         const bearerHeader = request.headers.authorization;

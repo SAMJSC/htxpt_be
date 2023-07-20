@@ -1,9 +1,15 @@
-import { LocalAuthGuard } from "@guards/local-auth.guard";
+import { USER_ROLES } from "@constants/common.constants";
+import { JwtAuthGuard } from "@guards/jwt-auth.guard";
+import { RolesGuard } from "@guards/roles.guard";
+import { AdminService } from "@modules/admin/admin.service";
 import { AuthService } from "@modules/auth/auth.service";
+import { AdminLoginDto } from "@modules/auth/dtos/admin-login.dto";
+import { AdminRegistrationDto } from "@modules/auth/dtos/admin-registration.dto";
 import { ChangePasswordDto } from "@modules/auth/dtos/change-password.dto";
 import { GardenLoginDto } from "@modules/auth/dtos/garden-login.dto";
 import { GardenRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
 import { RefreshTokenDto } from "@modules/auth/dtos/refresh_token.dto";
+import { GardensService } from "@modules/gardens/gardens.service";
 import {
     Body,
     Controller,
@@ -17,24 +23,47 @@ import {
     UseGuards,
     ValidationPipe,
 } from "@nestjs/common";
-import { GardenDecorator } from "decorators/current-garden.decorator";
-import { Garden as Garden } from "schemas/garden.schema";
+import { Admin } from "@schemas/admin.schema";
+import { UserDecorator } from "decorators/current-garden.decorator";
+import { Roles } from "decorators/roles.decorator";
+import { Garden } from "schemas/garden.schema";
 import { GenerateAccessJWTData } from "type";
 import { LoginMetadata, SessionResponse } from "types/common.type";
 
 @Controller("auth")
 export class AuthController {
-    constructor(private authService: AuthService) {}
+    constructor(
+        private authService: AuthService,
+        private adminService: AdminService,
+        private gardenService: GardensService
+    ) {}
 
     @Post("gardens/register")
     async gardenRegistration(
         @Body(ValidationPipe) createUserDto: GardenRegistrationDto
-    ): Promise<Garden> {
-        return await this.authService.gardenRegistration(createUserDto);
+    ): Promise<Admin | Garden> {
+        return await this.authService.registration(
+            this.gardenService,
+            createUserDto,
+            "createGarden"
+        );
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.SUPER_ADMIN)
+    @Post("admin/register")
+    async adminRegistration(
+        @Body(ValidationPipe) createUserDto: AdminRegistrationDto
+    ): Promise<Admin | Garden> {
+        return await this.authService.registration(
+            this.adminService,
+            createUserDto,
+            "createAdmin"
+        );
     }
 
     @Post("gardens/login")
-    @UseGuards(LocalAuthGuard)
     async gardenLogin(
         @Req() req: any,
         @Body() gardenLoginDto: GardenLoginDto,
@@ -44,10 +73,33 @@ export class AuthController {
         const ua = headers["user-agent"];
         const { deviceId } = req;
         const metaData: LoginMetadata = { ipAddress, ua, deviceId };
-        return this.authService.gardenLogin(gardenLoginDto, metaData);
+
+        return this.authService.login(
+            this.gardenService,
+            gardenLoginDto,
+            metaData
+        );
     }
 
-    @Post("gardens/refresh-token")
+    @Post("admin/login")
+    async adminLogin(
+        @Req() req: any,
+        @Body() adminLoginDto: AdminLoginDto,
+        @Headers() headers: Headers
+    ): Promise<SessionResponse> {
+        const ipAddress = req.connection.remoteAddress;
+        const ua = headers["user-agent"];
+        const { deviceId } = req;
+        const metaData: LoginMetadata = { ipAddress, ua, deviceId };
+
+        return this.authService.login(
+            this.adminService,
+            adminLoginDto,
+            metaData
+        );
+    }
+
+    @Post("/refresh-token")
     async generateNewAccessJWT(
         @Body() refreshTokenDto: RefreshTokenDto,
         @Req() req: any
@@ -61,14 +113,26 @@ export class AuthController {
 
     @Patch("gardens/change-password")
     async changePassword(
-        @GardenDecorator() garden: Garden,
+        @UserDecorator() user: Garden | Admin,
         @Body() changePasswordDto: ChangePasswordDto
     ) {
         try {
-            await this.authService.changePassword(
-                garden.phone,
-                changePasswordDto
-            );
+            if (user.role === USER_ROLES.GARDENER) {
+                await this.authService.changePassword(
+                    user.email,
+                    changePasswordDto,
+                    this.gardenService
+                );
+            }
+
+            if (user.role === USER_ROLES.ADMIN) {
+                await this.authService.changePassword(
+                    user.email,
+                    changePasswordDto,
+                    this.adminService
+                );
+            }
+
             return {
                 message: "Password successfully updated",
             };
@@ -81,14 +145,39 @@ export class AuthController {
         }
     }
 
-    @Post("gardens/logout")
-    async logout(@GardenDecorator() garden: Garden, @Req() req: any) {
+    @Post("/logout")
+    async logout(@UserDecorator() user: Garden | Admin, @Req() req: any) {
         const { deviceId } = req;
-        return this.authService.logout(garden.id, deviceId);
+        if (user.role === USER_ROLES.GARDENER) {
+            return this.authService.logout(
+                user.id,
+                deviceId,
+                this.gardenService
+            );
+        }
+
+        if (user.role === USER_ROLES.ADMIN) {
+            return this.authService.logout(
+                user.id,
+                deviceId,
+                this.adminService
+            );
+        }
     }
 
-    @Get("gardens/profile")
-    async getCurrentUserInfo(@GardenDecorator() garden: Garden) {
-        return this.authService.getCurrentUser(garden.email);
+    @Get("/profile")
+    async getCurrentUserInfo(@UserDecorator() user: Garden) {
+        if (user.role === USER_ROLES.GARDENER) {
+            return this.authService.getCurrentUser(
+                this.gardenService,
+                user.email
+            );
+        }
+        if (user.role === USER_ROLES.ADMIN || USER_ROLES.SUPER_ADMIN) {
+            return this.authService.getCurrentUser(
+                this.adminService,
+                user.email
+            );
+        }
     }
 }

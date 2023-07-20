@@ -18,7 +18,7 @@ export type LoginMetadata = {
 };
 
 export type SessionResponse = {
-    gardenData?: any; // replace with actual type if known
+    userData?: any; // replace with actual type if known
     accessToken?: string;
     refreshToken: string;
     loginMetaData?: LoginMetadata;
