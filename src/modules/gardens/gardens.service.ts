@@ -3,11 +3,14 @@ import { GardenRegistrationDto } from "@modules/auth/dtos/garden-registration.dt
 import { UpdateGardenDto } from "@modules/gardens/dtos/update-gardens.dto";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
+import { httpResponse } from "@shared/response";
+import { Response } from "@shared/response/response.interface";
 import { GardensRepositoryInterface } from "interfaces/gardens-repository.interface";
 import mongoose, { Model } from "mongoose";
 import { DeviceSession } from "schemas/device_session.schema";
 import { Garden } from "schemas/garden.schema";
 import { BaseServiceAbstract } from "services/base.abstract.service";
+import { PaginationOptions } from "types/common.type";
 
 @Injectable()
 export class GardensService extends BaseServiceAbstract<Garden> {
@@ -18,6 +21,38 @@ export class GardensService extends BaseServiceAbstract<Garden> {
         private readonly deviceSessionModel: Model<DeviceSession>
     ) {
         super(gardenRepository);
+    }
+
+    async getGardenById(gardenID: string): Promise<Response> {
+        const gardener = await this.gardenRepository.findOneById(gardenID);
+        if (!gardener) {
+            throw new HttpException(
+                `The gardener with id ${gardenID} not found`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+        return {
+            ...httpResponse.GET_GARDENER_BY_ID_SUCCESSFULLY,
+            data: {
+                gardener,
+            },
+        };
+    }
+
+    async getAllGardener(
+        filterObject: any,
+        options: PaginationOptions
+    ): Promise<Response> {
+        const gardeners = await this.gardenRepository.findAll(
+            filterObject,
+            options
+        );
+        return {
+            ...httpResponse.GET_ALL_GARDENERS_SUCCESSFULLY,
+            data: {
+                gardeners,
+            },
+        };
     }
 
     async createGarden(
@@ -50,30 +85,45 @@ export class GardensService extends BaseServiceAbstract<Garden> {
     }
 
     async updateGarden(
-        id: string,
+        gardenId: string,
         updateGardenDto: UpdateGardenDto
-    ): Promise<Garden> {
-        const garden = await this.gardenRepository.findOneById(id);
+    ): Promise<Response> {
+        if (!mongoose.Types.ObjectId.isValid(gardenId)) {
+            throw new HttpException(
+                `The id ${gardenId} is not valid`,
+                HttpStatus.BAD_REQUEST
+            );
+        }
+        const garden = await this.gardenRepository.findOneById(gardenId);
         if (!garden) {
             throw new HttpException(
-                `Garden with id ${id} not found`,
+                `Garden with id ${gardenId} not found`,
                 HttpStatus.NOT_FOUND
             );
         }
+
         Object.assign(garden, updateGardenDto);
-        await this.gardenRepository.create(garden);
-        return garden;
+        await this.gardenRepository.update(gardenId, garden);
+
+        return {
+            ...httpResponse.UPDATE_GARDENER_SUCCESSFULLY,
+            data: {
+                garden,
+            },
+        };
     }
 
-    async deleteGarden(id: string) {
-        if (!mongoose.Types.ObjectId.isValid(id)) {
+    async deleteGarden(gardenerId: string): Promise<Response> {
+        if (!mongoose.Types.ObjectId.isValid(gardenerId)) {
             throw new HttpException(
                 "Invalid garden ID",
                 HttpStatus.BAD_REQUEST
             );
         }
 
-        const gardenToDelete = await this.gardenRepository.findOneById(id);
+        const gardenToDelete = await this.gardenRepository.findOneById(
+            gardenerId
+        );
         if (!gardenToDelete) {
             throw new HttpException("Garden not found", HttpStatus.NOT_FOUND);
         }
@@ -81,9 +131,13 @@ export class GardensService extends BaseServiceAbstract<Garden> {
         await this.deviceSessionModel.deleteMany({
             garden: gardenToDelete._id,
         });
-        const result = await this.gardenRepository.permanentlyDelete(
+
+        await this.gardenRepository.permanentlyDelete(
             gardenToDelete._id.toString()
         );
-        return result;
+
+        return {
+            ...httpResponse.DELETE_GARDENER_SUCCESSFULLY,
+        };
     }
 }

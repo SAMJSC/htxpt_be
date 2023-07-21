@@ -8,7 +8,7 @@ export type AdminDocument = HydratedDocument<Admin>;
 
 @Schema({
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
-    collection: "admin",
+    collection: "admins",
 })
 export class Admin extends BaseSchema {
     @Prop({ unique: true, required: true })

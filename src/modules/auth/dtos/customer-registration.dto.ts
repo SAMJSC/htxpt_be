@@ -24,7 +24,7 @@ export class CustomerRegistrationDto {
     @IsString()
     readonly confirm_password: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     user_name: string;
 
