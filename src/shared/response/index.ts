@@ -23,4 +23,44 @@ export const httpResponse = {
         message: "Get profile successfully",
         statusCode: 200,
     },
+    CREATE_NEW_GARDENER_SUCCESSFULLY: {
+        message: "Gardener registration successfully",
+        statusCode: 201,
+    },
+    GET_GARDENER_BY_ID_SUCCESSFULLY: {
+        message: "Get gardener successfully",
+        statusCode: 200,
+    },
+    GET_ALL_GARDENERS_SUCCESSFULLY: {
+        message: "Get all gardeners successfully",
+        statusCode: 200,
+    },
+    UPDATE_GARDENER_SUCCESSFULLY: {
+        message: "Update the gardener successfully",
+        statusCode: 200,
+    },
+    DELETE_GARDENER_SUCCESSFULLY: {
+        message: "Remove the gardener successfully",
+        statusCode: 200,
+    },
+    CREATE_NEW_CUSTOMER_SUCCESSFULLY: {
+        message: "Gardener registration successfully",
+        statusCode: 201,
+    },
+    GET_CUSTOMER_BY_ID_SUCCESSFULLY: {
+        message: "Get customer successfully",
+        statusCode: 200,
+    },
+    GET_ALL_CUSTOMERS_SUCCESSFULLY: {
+        message: "Get all customers successfully",
+        statusCode: 200,
+    },
+    UPDATE_CUSTOMER_SUCCESSFULLY: {
+        message: "Update the customer successfully",
+        statusCode: 200,
+    },
+    DELETE_CUSTOMER_SUCCESSFULLY: {
+        message: "Remove the customer successfully",
+        statusCode: 200,
+    },
 };

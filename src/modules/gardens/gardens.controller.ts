@@ -8,38 +8,31 @@ import {
     Controller,
     Delete,
     Get,
-    HttpException,
-    HttpStatus,
     Param,
     Patch,
     Query,
     UseGuards,
 } from "@nestjs/common";
+import { Response } from "@shared/response/response.interface";
 import { Roles } from "decorators/roles.decorator";
-import { Garden } from "schemas/garden.schema";
+import { PaginationOptions } from "types/common.type";
 
 @Controller("gardens")
 export class GardensController {
     constructor(private readonly gardensService: GardensService) {}
 
     @UseGuards(JwtAuthGuard)
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(USER_ROLES.ADMIN)
+    @UseGuards(JwtAuthGuard)
     @Get(":gardenID")
-    async getGardenByID(@Param("gardenID") gardenID: string): Promise<Garden> {
-        try {
-            const garden = await this.gardensService.findOne(gardenID);
-            return garden;
-        } catch (error) {
-            throw new HttpException(
-                error.message,
-                HttpStatus.INTERNAL_SERVER_ERROR
-            );
-        }
+    async getGardenByID(
+        @Param("gardenID") gardenID: string
+    ): Promise<Response> {
+        const garden = await this.gardensService.getGardenById(gardenID);
+        return garden;
     }
 
     @Get()
-    findAll(@Query() query: any) {
+    findAll(@Query() query: any): Promise<Response> {
         const filterObject = {};
         const operationsMap = {
             gt: "$gt",
@@ -70,30 +63,30 @@ export class GardensController {
             }
         }
 
-        const options = {
+        const options: PaginationOptions = {
             limit: Number(query.limit) || 10,
             skip: Number(query.skip) || 0,
         };
 
-        return this.gardensService.findAll(filterObject, options);
+        return this.gardensService.getAllGardener(filterObject, options);
     }
 
     @UseGuards(JwtAuthGuard)
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(USER_ROLES.ADMIN)
-    @Patch(":id")
+    @Roles(USER_ROLES.GARDENER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN)
+    @Patch(":gardenerId")
     updateGarden(
-        @Param("id") id: string,
+        @Param("gardenerId") gardenerId: string,
         @Body() newGardenInfoDto: UpdateGardenDto
-    ): Promise<Garden> {
-        return this.gardensService.updateGarden(id, newGardenInfoDto);
+    ): Promise<Response> {
+        return this.gardensService.updateGarden(gardenerId, newGardenInfoDto);
     }
 
     @UseGuards(JwtAuthGuard)
     @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(USER_ROLES.ADMIN)
-    @Delete(":id")
-    remove(@Param("id") id: string) {
-        return this.gardensService.deleteGarden(id);
+    @Roles(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN)
+    @Delete(":gardenerId")
+    remove(@Param("gardenerId") gardenerId: string): Promise<Response> {
+        return this.gardensService.deleteGarden(gardenerId);
     }
 }

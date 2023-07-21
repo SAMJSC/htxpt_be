@@ -1,59 +1,144 @@
-import { CreateCustomerDto } from "@modules/customers/dtos/create-сustomer.dto";
-import { UpdateUserDto as UpdateCustomerDto } from "@modules/customers/dtos/update-customer.dto";
-import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { USER_ROLES } from "@constants/common.constants";
+import { CustomerRegistrationDto } from "@modules/auth/dtos/customer-registration.dto";
+import { UpdateCustomerDto } from "@modules/customers/dtos/update-customer.dto";
+import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { DeviceSession } from "@schemas/device_session.schema";
+import { httpResponse } from "@shared/response";
+import { Response } from "@shared/response/response.interface";
+import { CustomerRepositoryInterface } from "interfaces/customer-repository.interface";
+import mongoose, { Model } from "mongoose";
 import { Customer } from "schemas/customer.schema";
+import { Garden } from "schemas/garden.schema";
+import { BaseServiceAbstract } from "services/base.abstract.service";
+import { PaginationOptions } from "types/common.type";
 
 @Injectable()
-export class CustomersService {
+export class CustomersService extends BaseServiceAbstract<Customer> {
     constructor(
-        @InjectModel(Customer.name)
-        private customerModel: Model<Customer>
-    ) {}
+        @Inject("CustomerRepositoryInterface")
+        private readonly customerRepository: CustomerRepositoryInterface,
+        @InjectModel(DeviceSession.name)
+        private readonly deviceSessionModel: Model<DeviceSession>
+    ) {
+        super(customerRepository);
+    }
 
     async createCustomer(
-        createCustomerDto: CreateCustomerDto
+        createCustomerDto: CustomerRegistrationDto
     ): Promise<Customer> {
+        return this.customerRepository.create({
+            ...createCustomerDto,
+            role: USER_ROLES.CUSTOMER,
+        });
+    }
+
+    async getCustomerById(gardenID: string): Promise<Response> {
+        const customer = await this.customerRepository.findOneById(gardenID);
+        if (!customer) {
+            throw new HttpException(
+                `The customer with id ${gardenID} not found`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+        return {
+            ...httpResponse.GET_CUSTOMER_BY_ID_SUCCESSFULLY,
+            data: {
+                customer,
+            },
+        };
+    }
+
+    async getAllCustomer(
+        filterObject: any,
+        options: PaginationOptions
+    ): Promise<Response> {
+        const customers = await this.customerRepository.findAll(
+            filterObject,
+            options
+        );
+        return {
+            ...httpResponse.GET_ALL_CUSTOMERS_SUCCESSFULLY,
+            data: {
+                customers,
+            },
+        };
+    }
+
+    async getCustomerByEmail(email: string): Promise<Garden> {
         try {
-            const createCustomer = new this.customerModel(createCustomerDto);
-            return await createCustomer.save();
-        } catch (error) {
-            if (error.code === 11000) {
+            const garden = await this.customerRepository.findOneByCondition({
+                email,
+            });
+            if (!garden) {
                 throw new HttpException(
-                    "Email already exists",
-                    HttpStatus.CONFLICT
+                    `The garden with email ${email} doesn't existed `,
+                    HttpStatus.NOT_FOUND
                 );
             }
-            throw error;
+            return garden;
+        } catch (error) {
+            throw new HttpException(
+                error.message,
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 
-    async getAllCustomer(): Promise<Customer[]> {
-        const customers = await this.customerModel.find().exec();
-        return customers;
-    }
-
-    async getCustomer(customerID: string): Promise<Customer> {
-        return await this.customerModel.findById(customerID).exec();
-    }
-
     async updateCustomer(
-        customerID,
+        customerId: string,
         updateCustomerDto: UpdateCustomerDto
-    ): Promise<Customer> {
-        const updatedCustomer = await this.customerModel.findByIdAndUpdate(
-            customerID,
-            updateCustomerDto,
-            { new: true }
-        );
-        return updatedCustomer;
+    ): Promise<Response> {
+        if (!mongoose.Types.ObjectId.isValid(customerId)) {
+            throw new HttpException(
+                `The id ${customerId} is not valid`,
+                HttpStatus.BAD_REQUEST
+            );
+        }
+        const customer = await this.customerRepository.findOneById(customerId);
+        if (!customer) {
+            throw new HttpException(
+                `Customer with id ${customerId} not found`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        Object.assign(customer, updateCustomerDto);
+        await this.customerRepository.update(customerId, customer);
+
+        return {
+            ...httpResponse.UPDATE_CUSTOMER_SUCCESSFULLY,
+            data: {
+                customer,
+            },
+        };
     }
 
-    async deleteCustomer(customerID: string): Promise<any> {
-        const deletedCustomer = await this.customerModel.findByIdAndRemove(
-            customerID
+    async deleteCustomer(customerId: string): Promise<Response> {
+        if (!mongoose.Types.ObjectId.isValid(customerId)) {
+            throw new HttpException(
+                "Invalid customer ID",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        const customerToDelete = await this.customerRepository.findOneById(
+            customerId
         );
-        return deletedCustomer;
+        if (!customerToDelete) {
+            throw new HttpException("Customer not found", HttpStatus.NOT_FOUND);
+        }
+
+        await this.deviceSessionModel.deleteMany({
+            customer: customerToDelete._id,
+        });
+
+        await this.customerRepository.permanentlyDelete(
+            customerToDelete._id.toString()
+        );
+
+        return {
+            ...httpResponse.DELETE_CUSTOMER_SUCCESSFULLY,
+        };
     }
 }

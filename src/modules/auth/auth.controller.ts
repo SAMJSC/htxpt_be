@@ -6,9 +6,12 @@ import { AuthService } from "@modules/auth/auth.service";
 import { AdminLoginDto } from "@modules/auth/dtos/admin-login.dto";
 import { AdminRegistrationDto } from "@modules/auth/dtos/admin-registration.dto";
 import { ChangePasswordDto } from "@modules/auth/dtos/change-password.dto";
+import { CustomerLoginDto } from "@modules/auth/dtos/customer-login.dto";
+import { CustomerRegistrationDto } from "@modules/auth/dtos/customer-registration.dto";
 import { GardenLoginDto } from "@modules/auth/dtos/garden-login.dto";
 import { GardenRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
 import { RefreshTokenDto } from "@modules/auth/dtos/refresh_token.dto";
+import { CustomersService } from "@modules/customers/customers.service";
 import { GardensService } from "@modules/gardens/gardens.service";
 import {
     Body,
@@ -25,6 +28,7 @@ import {
     ValidationPipe,
 } from "@nestjs/common";
 import { Admin } from "@schemas/admin.schema";
+import { Customer } from "@schemas/customer.schema";
 import { Response } from "@shared/response/response.interface";
 import { UserDecorator } from "decorators/current-garden.decorator";
 import { Roles } from "decorators/roles.decorator";
@@ -36,8 +40,20 @@ export class AuthController {
     constructor(
         private authService: AuthService,
         private adminService: AdminService,
-        private gardenService: GardensService
+        private gardenService: GardensService,
+        private customerService: CustomersService
     ) {}
+
+    @Post("customer/register")
+    async customerRegistration(
+        @Body(ValidationPipe) createUserDto: CustomerRegistrationDto
+    ): Promise<Response> {
+        return await this.authService.registration(
+            this.customerService,
+            createUserDto,
+            "createCustomer"
+        );
+    }
 
     @Post("gardens/register")
     @HttpCode(HttpStatus.CREATED)
@@ -62,6 +78,24 @@ export class AuthController {
             this.adminService,
             createUserDto,
             "createAdmin"
+        );
+    }
+
+    @Post("customer/login")
+    async customerLogin(
+        @Req() req: any,
+        @Body() customerLoginDto: CustomerLoginDto,
+        @Headers() headers: Headers
+    ): Promise<Response> {
+        const ipAddress = req.connection.remoteAddress;
+        const ua = headers["user-agent"];
+        const { deviceId } = req;
+        const metaData: LoginMetadata = { ipAddress, ua, deviceId };
+
+        return this.authService.login(
+            this.customerService,
+            customerLoginDto,
+            metaData
         );
     }
 
@@ -113,12 +147,20 @@ export class AuthController {
         );
     }
 
-    @Patch("gardens/change-password")
+    @Patch("/change-password")
     async changePassword(
         @UserDecorator() user: Garden | Admin,
         @Body() changePasswordDto: ChangePasswordDto
     ): Promise<Response> {
         try {
+            if (user.role === USER_ROLES.CUSTOMER) {
+                return await this.authService.changePassword(
+                    user.email,
+                    changePasswordDto,
+                    this.customerService
+                );
+            }
+
             if (user.role === USER_ROLES.GARDENER) {
                 return await this.authService.changePassword(
                     user.email,
@@ -145,13 +187,14 @@ export class AuthController {
 
     @Post("/logout")
     async logout(
-        @UserDecorator() user: Garden | Admin,
+        @UserDecorator() user: Garden | Admin | Customer,
         @Req() req: any
     ): Promise<Response> {
         const { deviceId } = req;
+
         if (user.role === USER_ROLES.GARDENER) {
             return this.authService.logout(
-                user.id,
+                user._id.toString(),
                 deviceId,
                 this.gardenService
             );
@@ -159,15 +202,29 @@ export class AuthController {
 
         if (user.role === USER_ROLES.ADMIN) {
             return this.authService.logout(
-                user.id,
+                user._id.toString(),
                 deviceId,
                 this.adminService
+            );
+        }
+
+        if (user.role === USER_ROLES.CUSTOMER) {
+            return this.authService.logout(
+                user._id.toString(),
+                deviceId,
+                this.customerService
             );
         }
     }
 
     @Get("/profile")
     async getCurrentUserInfo(@UserDecorator() user: Garden): Promise<Response> {
+        if (user.role === USER_ROLES.CUSTOMER) {
+            return this.authService.getCurrentUser(
+                this.customerService,
+                user.email
+            );
+        }
         if (user.role === USER_ROLES.GARDENER) {
             return this.authService.getCurrentUser(
                 this.gardenService,
