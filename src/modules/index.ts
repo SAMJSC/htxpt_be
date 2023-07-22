@@ -1,5 +1,6 @@
 import { AdminModule } from "@modules/admin/admin.module";
 import { AuthModule } from "@modules/auth/auth.module";
+import { BonsaiModule } from "@modules/bonsai/bonsai.module";
 import { CustomersModule } from "@modules/customers/customers.module";
 import { FruitsModule } from "@modules/fruits/fruits.module";
 import { GardensModule } from "@modules/gardens/gardens.module";
@@ -13,5 +14,6 @@ export const MODULES = [
     GardensModule,
     PassportModule,
     FruitsModule,
+    BonsaiModule,
     AdminModule,
 ];

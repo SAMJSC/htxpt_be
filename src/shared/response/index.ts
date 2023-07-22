@@ -63,4 +63,12 @@ export const httpResponse = {
         message: "Remove the customer successfully",
         statusCode: 200,
     },
+    CREATE_NEW_BONSAI_SUCCESSFULLY: {
+        message: "Create bonsai successfully",
+        statusCode: 201,
+    },
+    UPDATE_BONSAI_SUCCESSFULLY: {
+        message: "Update bonsai successfully",
+        statusCode: 200,
+    },
 };
