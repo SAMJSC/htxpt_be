@@ -14,7 +14,6 @@ import {
 import { FruitImage } from "@schemas/fruit_image.schema";
 import { Express } from "express";
 import { Model } from "mongoose";
-
 @Injectable()
 export class FruitsService {
     constructor(
@@ -36,6 +35,7 @@ export class FruitsService {
     ): Promise<void> {
         try {
             let newImage;
+            let newFruit;
             if (image) {
                 const uploadResult = await this.cloudinaryService.uploadFile(
                     image
@@ -47,38 +47,56 @@ export class FruitsService {
                 await newImage.save();
             }
 
-            const fruitCategory = new this.fruitCategoryModel({
+            const isFruitCategoryName = await this.fruitCategoryModel.findOne({
                 category_name: createFruitDto.fruit_category_name,
-                range_price: createFruitDto.range_price,
-                shape: createFruitDto.shape,
-                dimeter: createFruitDto.dimeter,
-                weight: createFruitDto.weight,
-                quantity: createFruitDto.fruit_category_quantity,
             });
+
+            if (!isFruitCategoryName) {
+                throw new HttpException(
+                    "Error! can't found fruit category",
+                    HttpStatus.NOT_FOUND
+                );
+            }
 
             const checkFruitCategory = await this.fruitCategoryModel
                 .findOne({ category_name: createFruitDto.fruit_category_name })
                 .exec();
 
-            if (checkFruitCategory) {
-                const createFruit = new this.fruitModel({
-                    ...createFruitDto,
+            const isFruitCategory = await this.fruitModel.findOne({
+                fruit_categories: checkFruitCategory._id,
+            });
+
+            const newImageId = newImage ? newImage._id : null;
+
+            if (isFruitCategory && checkFruitCategory) {
+                const fruitImagesArray = Array.isArray(
+                    isFruitCategory.fruit_images
+                )
+                    ? isFruitCategory.fruit_images
+                    : [isFruitCategory.fruit_images];
+
+                if (newImageId) {
+                    fruitImagesArray.unshift(newImageId);
+                }
+
+                await this.fruitModel.findByIdAndUpdate(isFruitCategory._id, {
+                    fruit_name: createFruitDto.fruit_name,
                     gardens: gardens,
-                    fruit_categories: checkFruitCategory,
-                    fruit_images: newImage ? newImage._id : null,
+                    quantity:
+                        isFruitCategory.quantity + createFruitDto.quantity,
+                    fruit_categories: isFruitCategory.fruit_categories,
+                    fruit_images: fruitImagesArray,
                 });
-                await createFruit.save();
             } else {
                 const createFruit = new this.fruitModel({
-                    ...createFruitDto,
+                    fruit_name: createFruitDto.fruit_name,
+                    quantity: createFruitDto.quantity,
                     gardens: gardens,
-                    fruit_categories: fruitCategory,
-                    fruit_images: newImage ? newImage._id : null,
+                    fruit_categories: isFruitCategoryName,
+                    fruit_images: [newImageId],
                 });
-                Promise.all([
-                    await fruitCategory.save(),
-                    await createFruit.save(),
-                ]);
+                newFruit = await createFruit.save();
+                return newFruit;
             }
         } catch (error) {
             if (error.code === 11000) {

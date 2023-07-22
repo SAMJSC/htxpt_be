@@ -23,7 +23,7 @@ export class CreateFruitsDto {
     readonly fruit_categories: mongoose.Schema.Types.ObjectId;
 
     @IsOptional()
-    readonly fruit_images: mongoose.Schema.Types.ObjectId;
+    readonly fruit_images: mongoose.Schema.Types.ObjectId[];
 
     @IsNotEmpty()
     @IsString()

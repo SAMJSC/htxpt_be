@@ -43,12 +43,14 @@ export class Fruit {
     })
     fruit_categories?: FruitCategory;
 
-    @Prop({
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "FruitImage",
-        required: false,
-    })
-    fruit_images?: FruitImage;
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "FruitImage",
+            required: false,
+        },
+    ])
+    fruit_images?: FruitImage[];
 }
 
 export const FruitSchema = SchemaFactory.createForClass(Fruit);
