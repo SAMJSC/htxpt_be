@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { BonsaiImage } from "@schemas/bonsai_image.schema";
 import mongoose, { HydratedDocument } from "mongoose";
-import { FruitImage } from "schemas/fruit_image.schema";
 import { Garden } from "schemas/garden.schema";
 
 export type BonsaiDocument = HydratedDocument<Bonsai>;
@@ -14,6 +14,9 @@ export class Bonsai {
     tree_name: string;
 
     @Prop()
+    description: string;
+
+    @Prop()
     quantity: number;
 
     @Prop({
@@ -23,12 +26,14 @@ export class Bonsai {
     })
     gardens: Garden;
 
-    @Prop({
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "FruitImages",
-        required: true,
-    })
-    fruit_images: FruitImage;
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "BonsaiImages",
+            required: true,
+        },
+    ])
+    bonsai_images: BonsaiImage;
 }
 
 export const BonsaiSchema = SchemaFactory.createForClass(Bonsai);

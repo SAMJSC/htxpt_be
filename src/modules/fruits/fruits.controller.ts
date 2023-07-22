@@ -34,7 +34,7 @@ export class FruitsController {
     @Post("/create")
     @UseGuards(RolesGuard, JwtAuthGuard)
     @Roles(USER_ROLES.GARDENER)
-    @UseInterceptors(FileInterceptor("image"))
+    @UseInterceptors(FileInterceptor("fruit_images"))
     async addFruit(
         @Res() res: any,
         @Body() createFruitDto: CreateFruitsDto,
@@ -49,7 +49,7 @@ export class FruitsController {
             fruit_category_quantity: Number(
                 createFruitDto.fruit_category_quantity
             ),
-            fruit_images: null,
+            fruit_images: createFruitDto.fruit_images,
             range_price: JSON.parse(`[${createFruitDto.range_price}]`),
             shape: JSON.parse(`[${createFruitDto.shape}]`),
             dimeter: JSON.parse(`[${createFruitDto.dimeter}]`),
