@@ -4,9 +4,9 @@ export class ChangePasswordDto {
     @IsString()
     @MinLength(8)
     @MaxLength(32)
-    @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
-        message: "Password is too weak",
-    })
+    // @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+    //     message: "Password is too weak",
+    // })
     oldPassword: string;
 
     @IsString()
@@ -16,4 +16,12 @@ export class ChangePasswordDto {
         message: "Password is too weak",
     })
     newPassword: string;
+
+    @IsString()
+    @MinLength(8)
+    @MaxLength(32)
+    @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+        message: "Password is too weak",
+    })
+    confirmPassword: string;
 }

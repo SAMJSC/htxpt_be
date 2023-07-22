@@ -1,4 +1,3 @@
-import { AuthService } from "@modules/auth/auth.service";
 import { CacheModule } from "@nestjs/cache-manager";
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
@@ -23,9 +22,8 @@ import { GardensService } from "./gardens.service";
     controllers: [GardensController],
     providers: [
         GardensService,
-        AuthService,
         { provide: "GardensRepositoryInterface", useClass: GardensRepository },
     ],
-    exports: [GardensService, AuthService],
+    exports: [GardensService],
 })
 export class GardensModule {}

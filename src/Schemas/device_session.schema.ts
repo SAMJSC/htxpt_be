@@ -1,4 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Admin } from "@schemas/admin.schema";
+import { Customer } from "@schemas/customer.schema";
 import mongoose, { Document } from "mongoose";
 import { Garden } from "schemas/garden.schema";
 
@@ -24,8 +26,17 @@ export class DeviceSession {
     @Prop({ required: true })
     ip_address: string;
 
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: "Customers" })
+    customer: Customer;
+
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: "Gardens" })
-    garden: Garden;
+    gardener: Garden;
+
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: "Admin" })
+    admin: Admin;
+
+    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: "Admin" })
+    super_admin: Admin;
 }
 
 export const DeviceSessionSchema = SchemaFactory.createForClass(DeviceSession);

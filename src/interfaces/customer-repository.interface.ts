@@ -1,9 +1,9 @@
-import { Fruit } from "@schemas/fruit.schema";
+import { Customer } from "@schemas/customer.schema";
 import { BaseRepositoryInterface } from "repository/base/base.interface.repository";
 import { FindAllResponse } from "types/common.type";
 
-export interface FruitsRepositoryInterface
-    extends BaseRepositoryInterface<Fruit> {
+export interface CustomerRepositoryInterface
+    extends BaseRepositoryInterface<Customer> {
     findAllWithSubFields(
         condition: object,
         options: {
@@ -12,5 +12,5 @@ export interface FruitsRepositoryInterface
             offset?: number;
             limit?: number;
         }
-    ): Promise<FindAllResponse<Fruit>>;
+    ): Promise<FindAllResponse<Customer>>;
 }

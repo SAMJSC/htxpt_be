@@ -1,14 +1,24 @@
-import { LocalAuthGuard } from "@guards/local-auth.guard";
+import { USER_ROLES } from "@constants/common.constants";
+import { JwtAuthGuard } from "@guards/jwt-auth.guard";
+import { RolesGuard } from "@guards/roles.guard";
+import { AdminService } from "@modules/admin/admin.service";
 import { AuthService } from "@modules/auth/auth.service";
+import { AdminLoginDto } from "@modules/auth/dtos/admin-login.dto";
+import { AdminRegistrationDto } from "@modules/auth/dtos/admin-registration.dto";
 import { ChangePasswordDto } from "@modules/auth/dtos/change-password.dto";
+import { CustomerLoginDto } from "@modules/auth/dtos/customer-login.dto";
+import { CustomerRegistrationDto } from "@modules/auth/dtos/customer-registration.dto";
 import { GardenLoginDto } from "@modules/auth/dtos/garden-login.dto";
 import { GardenRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
 import { RefreshTokenDto } from "@modules/auth/dtos/refresh_token.dto";
+import { CustomersService } from "@modules/customers/customers.service";
+import { GardensService } from "@modules/gardens/gardens.service";
 import {
     Body,
     Controller,
     Get,
     Headers,
+    HttpCode,
     HttpException,
     HttpStatus,
     Patch,
@@ -17,41 +27,119 @@ import {
     UseGuards,
     ValidationPipe,
 } from "@nestjs/common";
-import { GardenDecorator } from "decorators/current-garden.decorator";
-import { Garden as Garden } from "schemas/garden.schema";
-import { GenerateAccessJWTData } from "type";
-import { LoginMetadata, SessionResponse } from "types/common.type";
+import { Admin } from "@schemas/admin.schema";
+import { Customer } from "@schemas/customer.schema";
+import { Response } from "@shared/response/response.interface";
+import { UserDecorator } from "decorators/current-garden.decorator";
+import { Roles } from "decorators/roles.decorator";
+import { Garden } from "schemas/garden.schema";
+import { LoginMetadata } from "types/common.type";
 
 @Controller("auth")
 export class AuthController {
-    constructor(private authService: AuthService) {}
+    constructor(
+        private authService: AuthService,
+        private adminService: AdminService,
+        private gardenService: GardensService,
+        private customerService: CustomersService
+    ) {}
 
-    @Post("gardens/register")
-    async gardenRegistration(
-        @Body(ValidationPipe) createUserDto: GardenRegistrationDto
-    ): Promise<Garden> {
-        return await this.authService.gardenRegistration(createUserDto);
+    @Post("customer/register")
+    async customerRegistration(
+        @Body(ValidationPipe) createUserDto: CustomerRegistrationDto
+    ): Promise<Response> {
+        return await this.authService.registration(
+            this.customerService,
+            createUserDto,
+            "createCustomer"
+        );
     }
 
-    @Post("gardens/login")
-    @UseGuards(LocalAuthGuard)
-    async gardenLogin(
+    @Post("gardens/register")
+    @HttpCode(HttpStatus.CREATED)
+    async gardenRegistration(
+        @Body(ValidationPipe) createUserDto: GardenRegistrationDto
+    ): Promise<Response> {
+        return await this.authService.registration(
+            this.gardenService,
+            createUserDto,
+            "createGarden"
+        );
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.SUPER_ADMIN)
+    @Post("admin/register")
+    async adminRegistration(
+        @Body(ValidationPipe) createUserDto: AdminRegistrationDto
+    ): Promise<Response> {
+        return await this.authService.registration(
+            this.adminService,
+            createUserDto,
+            "createAdmin"
+        );
+    }
+
+    @Post("customer/login")
+    async customerLogin(
         @Req() req: any,
-        @Body() gardenLoginDto: GardenLoginDto,
+        @Body() customerLoginDto: CustomerLoginDto,
         @Headers() headers: Headers
-    ): Promise<SessionResponse> {
+    ): Promise<Response> {
         const ipAddress = req.connection.remoteAddress;
         const ua = headers["user-agent"];
         const { deviceId } = req;
         const metaData: LoginMetadata = { ipAddress, ua, deviceId };
-        return this.authService.gardenLogin(gardenLoginDto, metaData);
+
+        return this.authService.login(
+            this.customerService,
+            customerLoginDto,
+            metaData
+        );
     }
 
-    @Post("gardens/refresh-token")
+    @Post("gardens/login")
+    async gardenLogin(
+        @Req() req: any,
+        @Body() gardenLoginDto: GardenLoginDto,
+        @Headers() headers: Headers
+    ): Promise<Response> {
+        const ipAddress = req.connection.remoteAddress;
+        const ua = headers["user-agent"];
+        const { deviceId } = req;
+        const metaData: LoginMetadata = { ipAddress, ua, deviceId };
+
+        return this.authService.login(
+            this.gardenService,
+            gardenLoginDto,
+            metaData
+        );
+    }
+
+    @Post("admin/login")
+    async adminLogin(
+        @Req() req: any,
+        @Body() adminLoginDto: AdminLoginDto,
+        @Headers() headers: Headers
+    ): Promise<Response> {
+        const ipAddress = req.connection.remoteAddress;
+        const ua = headers["user-agent"];
+        const { deviceId } = req;
+        const metaData: LoginMetadata = { ipAddress, ua, deviceId };
+
+        return this.authService.login(
+            this.adminService,
+            adminLoginDto,
+            metaData
+        );
+    }
+
+    @Post("/refresh-token")
     async generateNewAccessJWT(
         @Body() refreshTokenDto: RefreshTokenDto,
         @Req() req: any
-    ): Promise<GenerateAccessJWTData> {
+    ): Promise<Response> {
         const { deviceId } = req;
         return await this.authService.generateNewAccessJWT(
             deviceId,
@@ -59,19 +147,35 @@ export class AuthController {
         );
     }
 
-    @Patch("gardens/change-password")
+    @Patch("/change-password")
     async changePassword(
-        @GardenDecorator() garden: Garden,
+        @UserDecorator() user: Garden | Admin,
         @Body() changePasswordDto: ChangePasswordDto
-    ) {
+    ): Promise<Response> {
         try {
-            await this.authService.changePassword(
-                garden.phone,
-                changePasswordDto
-            );
-            return {
-                message: "Password successfully updated",
-            };
+            if (user.role === USER_ROLES.CUSTOMER) {
+                return await this.authService.changePassword(
+                    user.email,
+                    changePasswordDto,
+                    this.customerService
+                );
+            }
+
+            if (user.role === USER_ROLES.GARDENER) {
+                return await this.authService.changePassword(
+                    user.email,
+                    changePasswordDto,
+                    this.gardenService
+                );
+            }
+
+            if (user.role === USER_ROLES.ADMIN) {
+                return await this.authService.changePassword(
+                    user.email,
+                    changePasswordDto,
+                    this.adminService
+                );
+            }
         } catch (error) {
             throw new HttpException(
                 error.message ||
@@ -81,14 +185,57 @@ export class AuthController {
         }
     }
 
-    @Post("gardens/logout")
-    async logout(@GardenDecorator() garden: Garden, @Req() req: any) {
+    @Post("/logout")
+    async logout(
+        @UserDecorator() user: Garden | Admin | Customer,
+        @Req() req: any
+    ): Promise<Response> {
         const { deviceId } = req;
-        return this.authService.logout(garden.id, deviceId);
+
+        if (user.role === USER_ROLES.GARDENER) {
+            return this.authService.logout(
+                user._id.toString(),
+                deviceId,
+                this.gardenService
+            );
+        }
+
+        if (user.role === USER_ROLES.ADMIN) {
+            return this.authService.logout(
+                user._id.toString(),
+                deviceId,
+                this.adminService
+            );
+        }
+
+        if (user.role === USER_ROLES.CUSTOMER) {
+            return this.authService.logout(
+                user._id.toString(),
+                deviceId,
+                this.customerService
+            );
+        }
     }
 
-    @Get("gardens/profile")
-    async getCurrentUserInfo(@GardenDecorator() garden: Garden) {
-        return this.authService.getCurrentUser(garden.email);
+    @Get("/profile")
+    async getCurrentUserInfo(@UserDecorator() user: Garden): Promise<Response> {
+        if (user.role === USER_ROLES.CUSTOMER) {
+            return this.authService.getCurrentUser(
+                this.customerService,
+                user.email
+            );
+        }
+        if (user.role === USER_ROLES.GARDENER) {
+            return this.authService.getCurrentUser(
+                this.gardenService,
+                user.email
+            );
+        }
+        if (user.role === USER_ROLES.ADMIN || USER_ROLES.SUPER_ADMIN) {
+            return this.authService.getCurrentUser(
+                this.adminService,
+                user.email
+            );
+        }
     }
 }
