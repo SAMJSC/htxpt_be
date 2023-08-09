@@ -11,11 +11,13 @@ import { NestFactory, Reflector } from "@nestjs/core";
 import * as bcrypt from "bcrypt";
 import { scrypt } from "crypto";
 import { rateLimit } from "express-rate-limit";
+import session from "express-session";
 import { HttpExceptionFilter } from "filters/bad-request.filter";
 import { DuplicateKeyFilter } from "filters/mongo-error.filter";
 import { QueryFailedFilter } from "filters/query-fail.filter";
 import { get, x64hash128 } from "fingerprintjs2";
 import helmet from "helmet";
+import passport from "passport";
 import { initSwagger } from "swagger";
 import { promisify } from "util";
 
@@ -61,6 +63,19 @@ async function bootstrap() {
             max: 100,
         })
     );
+
+    app.use(
+        session({
+            secret: "my-secret",
+            resave: false,
+            saveUninitialized: false,
+            cookie: {
+                maxAge: 60000,
+            },
+        })
+    );
+    app.use(passport.initialize());
+    app.use(passport.session());
 
     const reflector = app.get(Reflector);
 

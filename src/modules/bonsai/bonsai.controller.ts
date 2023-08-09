@@ -20,7 +20,7 @@ import {
     UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { Garden } from "@schemas/garden.schema";
+import { Gardener } from "@schemas/garden.schema";
 import { Response } from "@shared/response/response.interface";
 import { UserDecorator } from "decorators/current-garden.decorator";
 import { Roles } from "decorators/roles.decorator";
@@ -37,7 +37,7 @@ export class BonsaiController {
     async addFruit(
         // @Res() res: any,
         @Body() createBonsai: CreateBonsaiDto,
-        @UserDecorator() garden: Garden,
+        @UserDecorator() garden: Gardener,
         @UploadedFile() image?: Express.Multer.File
     ): Promise<Response> {
         const parsedDto: CreateBonsaiDto = {

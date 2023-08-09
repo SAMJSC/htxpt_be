@@ -16,7 +16,7 @@ import {
 } from "schemas/device_session.schema";
 import { Fruit } from "schemas/fruit.schema";
 
-export type GardensDocument = HydratedDocument<Garden>;
+export type GardenerDocument = HydratedDocument<Gardener>;
 
 @Schema({
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
@@ -35,7 +35,7 @@ export type GardensDocument = HydratedDocument<Garden>;
         },
     },
 })
-export class Garden extends BaseSchema {
+export class Gardener extends BaseSchema {
     @Prop({ unique: true })
     email?: string;
 
@@ -97,10 +97,10 @@ export class Garden extends BaseSchema {
     @Prop({ type: String, enum: Object.values(GENDER) })
     gender?: GENDER;
 
-    @Prop({ required: true })
+    @Prop()
     @Exclude({ toPlainOnly: true })
     @Expose()
-    password: string;
+    password?: string;
 
     @Prop()
     @Exclude()
@@ -143,6 +143,15 @@ export class Garden extends BaseSchema {
     ])
     bonsai?: Bonsai[];
 
+    @Prop({ default: false })
+    email_verified?: boolean;
+
+    @Prop({ default: false })
+    phone_verified?: boolean;
+
+    @Prop({ type: String, enum: ["local", "google"], default: "local" })
+    authen_method?: string;
+
     @Prop([
         {
             type: mongoose.Schema.Types.ObjectId,
@@ -152,21 +161,24 @@ export class Garden extends BaseSchema {
     device_sessions?: DeviceSession[];
 }
 
-export const GardensSchema = SchemaFactory.createForClass(Garden);
+export const GardenerSchema = SchemaFactory.createForClass(Gardener);
 
 export const GardenSchemaFactory = (
     deviceSessionModel: Model<DeviceSessionDocument>
 ) => {
-    const garden_schema = GardensSchema;
+    const gardener_schema = GardenerSchema;
 
-    garden_schema.pre("findOneAndDelete", async function (next: NextFunction) {
-        const garden = await this.model.findOne(this.getFilter());
-        deviceSessionModel.deleteMany({ garden: garden._id });
-        return next();
-    });
+    gardener_schema.pre(
+        "findOneAndDelete",
+        async function (next: NextFunction) {
+            const garden = await this.model.findOne(this.getFilter());
+            deviceSessionModel.deleteMany({ garden: garden._id });
+            return next();
+        }
+    );
 
-    garden_schema.virtual("full_name").get(function (this: GardensDocument) {
+    gardener_schema.virtual("full_name").get(function (this: GardenerDocument) {
         return `${this.first_name} ${this.middle_name} ${this.last_name} `;
     });
-    return garden_schema;
+    return gardener_schema;
 };

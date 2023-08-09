@@ -22,7 +22,7 @@ import {
     UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { Garden } from "@schemas/garden.schema";
+import { Gardener } from "@schemas/garden.schema";
 import { UserDecorator } from "decorators/current-garden.decorator";
 import { Roles } from "decorators/roles.decorator";
 import { Express } from "express";
@@ -38,7 +38,7 @@ export class FruitsController {
     async addFruit(
         @Res() res: any,
         @Body() createFruitDto: CreateFruitsDto,
-        @UserDecorator() garden: Garden,
+        @UserDecorator() garden: Gardener,
         @UploadedFile() image?: Express.Multer.File
     ) {
         const parsedDto: CreateFruitsDto = {
@@ -73,7 +73,7 @@ export class FruitsController {
     async addFruitSpecial(
         @Res() res: any,
         @Body() createFruitSpecialDto: CreateFruitSpecialDto,
-        @UserDecorator() garden: Garden
+        @UserDecorator() garden: Gardener
     ) {
         const fruitSpecial = await this.fruitsService.createFruitSpecial(
             createFruitSpecialDto,

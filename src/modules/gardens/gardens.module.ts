@@ -6,7 +6,7 @@ import {
     DeviceSession,
     DeviceSessionSchema,
 } from "schemas/device_session.schema";
-import { Garden, GardensSchema } from "schemas/garden.schema";
+import { Gardener, GardenerSchema } from "schemas/garden.schema";
 
 import { GardensController } from "./gardens.controller";
 import { GardensService } from "./gardens.service";
@@ -14,7 +14,7 @@ import { GardensService } from "./gardens.service";
 @Module({
     imports: [
         MongooseModule.forFeature([
-            { name: Garden.name, schema: GardensSchema },
+            { name: Gardener.name, schema: GardenerSchema },
             { name: DeviceSession.name, schema: DeviceSessionSchema },
         ]),
         CacheModule.register(),

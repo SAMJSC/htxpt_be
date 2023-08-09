@@ -1,4 +1,3 @@
-import { HealthCheckModule } from "@modules/health-check/health-check.module";
 import { MODULES } from "@modules/index";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
@@ -10,7 +9,7 @@ import Joi from "joi";
 import { LocalStrategy } from "strategegies/local.strategy";
 
 import { AuthController } from "./modules/auth/auth.controller";
-import { CloudinaryModule } from "./modules/cloudinary/cloudinary.module";
+import { BlogController } from "./modules/blog/blog.controller";
 
 const modules = [...MODULES];
 
@@ -23,8 +22,6 @@ const modules = [...MODULES];
                     .default("development"),
                 PORT: Joi.number().port().required(),
                 DATABASE_PORT: Joi.number().port().required(),
-                // DATABASE_USERNAME: Joi.string().min(4).required(),
-                // DATABASE_PASSWORD: Joi.string().min(4).required(),
                 DATABASE_HOST: Joi.string().required(),
                 DATABASE_URI: Joi.string().required(),
             }),
@@ -39,8 +36,6 @@ const modules = [...MODULES];
             expandVariables: true,
         }),
         ...modules,
-        CloudinaryModule,
-        HealthCheckModule,
     ],
     providers: [
         LocalStrategy,
@@ -50,6 +45,6 @@ const modules = [...MODULES];
             useClass: JwtMalformedFilter,
         },
     ],
-    controllers: [AuthController],
+    controllers: [AuthController, BlogController],
 })
 export class AppModule {}

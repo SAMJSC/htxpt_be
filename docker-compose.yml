@@ -1,29 +1,36 @@
 version: "3.8"
 
 services:
-    app:
-        build:
-            context: .
-            dockerfile: Dockerfile
+    # app:
+    #     build:
+    #         context: .
+    #         dockerfile: Dockerfile
+    #     ports:
+    #         - 3000:3000
+    #     environment:
+    #         - PORT
+    #         - SWAGGER_PATH
+    #         - SECRET_JWT
+    #         - REFRESH_TOKEN_SECRET_JWT
+    #         - DATABASE_HOST
+    #         - DATABASE_PASSWORD
+    #         - DATABASE_USER
+    #         - DATABASE_PORT
+    #         - DATABASE
+    #         - DATABASE_URI
+    #         - ENABLE_LOGGING
+    #         - REFRESH_JWT_SECRET_KEY
+    #         - ACCESS_JWT_SECRET_KEY
+    #         - RESET_JWT_SECRET_KEY
+    #         - ACCESS_TOKEN_EXPIRE_IN_SEC
+    #         - REFRESH_TOKEN_EXPIRE_IN_SEC
+    #         - CLOUD_NAME
+    #         - CLOUD_API_KEY
+    #         - CLOUD_SECRET_KEY
+    #     env_file:
+    #         - .env
+
+    redis:
+        image: 'redis:6-alpine'
         ports:
-            - 3000:3000
-        environment:
-            - PORT=3000
-            - SWAGGER_PATH=docs
-            - SECRET_JWT=
-            - REFRESH_TOKEN_SECRET_JWT=
-            - DATABASE_HOST=localhost
-            - DATABASE_PASSWORD=./khanh2001
-            - DATABASE_USER=root
-            - DATABASE_PORT=27017
-            - DATABASE=htxphatthu_db
-            - DATABASE_URI=mongodb+srv://samcompany:htxphatthu123@cluster0.zagydan.mongodb.net/?retryWrites=true&w=majority
-            - ENABLE_LOGGING=true
-            - REFRESH_JWT_SECRET_KEY=REFRESH_JWT_SECRET_KEY
-            - ACCESS_JWT_SECRET_KEY=ACCESS_JWT_SECRET_KEY
-            - RESET_JWT_SECRET_KEY=RESET_JWT_SECRET_KEY
-            - ACCESS_TOKEN_EXPIRE_IN_SEC=1800
-            - REFRESH_TOKEN_EXPIRE_IN_SEC=86400
-            - CLOUD_NAME=dm1fewldb
-            - CLOUD_API_KEY=162612922999279
-            - CLOUD_SECRET_KEY=eGB6zpIGb6_2sZdZ4vtuEIlVkTM
+            - 6320:6379

@@ -9,7 +9,7 @@ import { Response } from "@shared/response/response.interface";
 import { CustomerRepositoryInterface } from "interfaces/customer-repository.interface";
 import mongoose, { Model } from "mongoose";
 import { Customer } from "schemas/customer.schema";
-import { Garden } from "schemas/garden.schema";
+import { Gardener } from "schemas/garden.schema";
 import { BaseServiceAbstract } from "services/base.abstract.service";
 import { PaginationOptions } from "types/common.type";
 
@@ -26,11 +26,12 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
 
     async createCustomer(
         createCustomerDto: CustomerRegistrationDto
-    ): Promise<Customer> {
-        return this.customerRepository.create({
+    ): Promise<Response> {
+        await this.customerRepository.create({
             ...createCustomerDto,
             role: USER_ROLES.CUSTOMER,
         });
+        return httpResponse.CREATE_NEW_CUSTOMER_SUCCESS;
     }
 
     async getCustomerById(gardenID: string): Promise<Response> {
@@ -65,7 +66,7 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
         };
     }
 
-    async getCustomerByEmail(email: string): Promise<Garden> {
+    async getCustomerByEmail(email: string): Promise<Gardener> {
         try {
             const garden = await this.customerRepository.findOneByCondition({
                 email,
@@ -86,6 +87,8 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
     }
 
     async updateCustomer(
+        actionUserId: string,
+        actionUserRole: USER_ROLES,
         customerId: string,
         updateCustomerDto: UpdateCustomerDto
     ): Promise<Response> {
@@ -95,6 +98,16 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
                 HttpStatus.BAD_REQUEST
             );
         }
+
+        if (actionUserRole === USER_ROLES.CUSTOMER) {
+            if (actionUserId !== customerId) {
+                throw new HttpException(
+                    "You can not have permission",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
         const customer = await this.customerRepository.findOneById(customerId);
         if (!customer) {
             throw new HttpException(

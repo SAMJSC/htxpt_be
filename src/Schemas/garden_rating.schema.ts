@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import mongoose, { HydratedDocument } from "mongoose";
 
 import { Customer } from "./customer.schema";
-import { Garden } from "./garden.schema";
+import { Gardener } from "./garden.schema";
 
 export type GardenRatingDocument = HydratedDocument<GardenRating>;
 
@@ -23,7 +23,7 @@ export class GardenRating {
         ref: "Garden",
         required: true,
     })
-    garden: Garden;
+    garden: Gardener;
 
     @Prop({
         type: Number,

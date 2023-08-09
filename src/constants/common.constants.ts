@@ -23,3 +23,8 @@ export enum GENDER {
     Female = "Female",
     Other = "Other",
 }
+
+export enum AUTHEN_METHODS {
+    LOCAL = "local",
+    GOOGLE = "google",
+}

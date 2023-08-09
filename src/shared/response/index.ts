@@ -1,4 +1,9 @@
 export const httpResponse = {
+    REGISTER_SEND_MAIL: {
+        message: "Please check your email to confirm registation",
+        code: "USER_001",
+        statusCode: 200,
+    },
     REGISTER_SUCCESSFULLY: {
         message: "Register successfully",
         statusCode: 201,
@@ -69,6 +74,38 @@ export const httpResponse = {
     },
     UPDATE_BONSAI_SUCCESSFULLY: {
         message: "Update bonsai successfully",
+        statusCode: 200,
+    },
+    EMAIL_RESENT_SUCCESSFULLY: {
+        message: "Resend email successfully",
+        statusCode: 200,
+    },
+    FORGOT_PASSWORD_SUCCESS: {
+        message: "Change password success",
+        statusCode: 200,
+    },
+    CREATE_BLOG_SUCCESS: {
+        message: "Create blog successfully",
+        statusCode: 201,
+    },
+    CREATE_NEW_CUSTOMER_SUCCESS: {
+        message: "Create customer successfully",
+        statusCode: 2001,
+    },
+    UPDATE_BLOG_SUCCESSFULLY: {
+        message: "Update blog successfully",
+        statusCode: 200,
+    },
+    FIND_BLOG_RESPONSE: {
+        message: "Successfully",
+        statusCode: 200,
+    },
+    GET_ALL_BLOG_SUCCESSFULLY: {
+        message: "Get all blog successfully",
+        statusCode: 200,
+    },
+    DELETE_BLOG_SUCCESSFULLY: {
+        message: "Delete blog successfully",
         statusCode: 200,
     },
 };

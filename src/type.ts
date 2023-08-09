@@ -1,6 +1,6 @@
 import { USER_ROLES } from "@constants/common.constants";
 import { Admin } from "@schemas/admin.schema";
-import { Garden } from "@schemas/garden.schema";
+import { Gardener } from "@schemas/garden.schema";
 export type Constructor<T, Arguments extends unknown[] = undefined[]> = new (
     ...arguments_: Arguments
 ) => T;
@@ -29,7 +29,7 @@ export interface Session {
     refresh_token: string;
     expired_at: Date;
     ip_address: string;
-    gardener: Garden;
+    gardener: Gardener;
     admin: Admin;
     super_admin: Admin;
     delete_at?: string;

@@ -11,12 +11,12 @@ import {
     Min,
 } from "class-validator";
 
-export class GardenRegistrationDto {
+export class GardenerRegistrationDto {
     @IsNotEmpty()
     @IsEmail()
     readonly email: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     readonly password: string;
 
