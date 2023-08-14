@@ -13,22 +13,26 @@ import {
     Query,
     UseGuards,
 } from "@nestjs/common";
+import { Admin } from "@schemas/admin.schema";
+import { Customer } from "@schemas/customer.schema";
+import { Gardener } from "@schemas/garden.schema";
 import { Response } from "@shared/response/response.interface";
+import { UserDecorator } from "decorators/current-garden.decorator";
 import { Roles } from "decorators/roles.decorator";
 import { PaginationOptions } from "types/common.type";
 
-@Controller("gardens")
+@Controller("gardeners")
 export class GardensController {
     constructor(private readonly gardensService: GardensService) {}
 
     @UseGuards(JwtAuthGuard)
     @UseGuards(JwtAuthGuard)
-    @Get(":gardenID")
+    @Get(":gardenerID")
     async getGardenByID(
-        @Param("gardenID") gardenID: string
+        @Param("gardenerID") gardenerID: string
     ): Promise<Response> {
-        const garden = await this.gardensService.getGardenById(gardenID);
-        return garden;
+        const gardener = await this.gardensService.getGardenById(gardenerID);
+        return gardener;
     }
 
     @Get()
@@ -77,9 +81,15 @@ export class GardensController {
     @Patch(":gardenerId")
     updateGarden(
         @Param("gardenerId") gardenerId: string,
-        @Body() newGardenInfoDto: UpdateGardenDto
+        @Body() newGardenInfoDto: UpdateGardenDto,
+        @UserDecorator() user: Gardener | Customer | Admin
     ): Promise<Response> {
-        return this.gardensService.updateGarden(gardenerId, newGardenInfoDto);
+        return this.gardensService.updateGarden(
+            user._id.toString(),
+            user.role,
+            gardenerId,
+            newGardenInfoDto
+        );
     }
 
     @UseGuards(JwtAuthGuard)

@@ -6,6 +6,7 @@ import { CustomersService } from "@modules/customers/customers.service";
 import { FruitsModule } from "@modules/fruits/fruits.module";
 import { GardensModule } from "@modules/gardens/gardens.module";
 import { GardensService } from "@modules/gardens/gardens.service";
+import { MailModule } from "@modules/mail/mail.module";
 import { CacheModule } from "@nestjs/cache-manager";
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
@@ -19,15 +20,17 @@ import {
     DeviceSession,
     DeviceSessionSchema,
 } from "schemas/device_session.schema";
-import { Garden, GardensSchema } from "schemas/garden.schema";
+import { Gardener, GardenerSchema } from "schemas/garden.schema";
+import { GoogleStrategy } from "strategegies/google.strategy";
 import { JwtStrategy } from "strategegies/jwt.strategy";
 import { LocalStrategy } from "strategegies/local.strategy";
 
 @Module({
     imports: [
+        MailModule,
         MongooseModule.forFeature([
             { name: DeviceSession.name, schema: DeviceSessionSchema },
-            { name: Garden.name, schema: GardensSchema },
+            { name: Gardener.name, schema: GardenerSchema },
             { name: Admin.name, schema: AdminSchema },
             { name: Customer.name, schema: CustomerSchema },
         ]),
@@ -51,7 +54,8 @@ import { LocalStrategy } from "strategegies/local.strategy";
             provide: "CustomerRepositoryInterface",
             useClass: CustomerRepository,
         },
+        GoogleStrategy,
     ],
-    exports: [AuthService],
+    exports: [AuthService, GoogleStrategy],
 })
 export class AuthModule {}

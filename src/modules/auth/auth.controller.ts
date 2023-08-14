@@ -1,4 +1,6 @@
 import { USER_ROLES } from "@constants/common.constants";
+import { CustomerGoogleAuthGuard } from "@guards/customer-google-auth.guard";
+import { GardenerGoogleAuthGuard } from "@guards/gardener-google-auth.guard";
 import { JwtAuthGuard } from "@guards/jwt-auth.guard";
 import { RolesGuard } from "@guards/roles.guard";
 import { AdminService } from "@modules/admin/admin.service";
@@ -8,9 +10,12 @@ import { AdminRegistrationDto } from "@modules/auth/dtos/admin-registration.dto"
 import { ChangePasswordDto } from "@modules/auth/dtos/change-password.dto";
 import { CustomerLoginDto } from "@modules/auth/dtos/customer-login.dto";
 import { CustomerRegistrationDto } from "@modules/auth/dtos/customer-registration.dto";
+import { ForgotPasswordDto } from "@modules/auth/dtos/forgot-password.dto";
 import { GardenLoginDto } from "@modules/auth/dtos/garden-login.dto";
-import { GardenRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
+import { GardenerRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
 import { RefreshTokenDto } from "@modules/auth/dtos/refresh_token.dto";
+import { ResendVerifyEmailDto } from "@modules/auth/dtos/resend-email.dto";
+import { SendOtpForgotPasswordDto } from "@modules/auth/dtos/send-otp-password.dto";
 import { CustomersService } from "@modules/customers/customers.service";
 import { GardensService } from "@modules/gardens/gardens.service";
 import {
@@ -23,16 +28,18 @@ import {
     HttpStatus,
     Patch,
     Post,
+    Query,
     Req,
     UseGuards,
     ValidationPipe,
 } from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
 import { Admin } from "@schemas/admin.schema";
 import { Customer } from "@schemas/customer.schema";
 import { Response } from "@shared/response/response.interface";
 import { UserDecorator } from "decorators/current-garden.decorator";
 import { Roles } from "decorators/roles.decorator";
-import { Garden } from "schemas/garden.schema";
+import { Gardener } from "schemas/garden.schema";
 import { LoginMetadata } from "types/common.type";
 
 @Controller("auth")
@@ -44,41 +51,42 @@ export class AuthController {
         private customerService: CustomersService
     ) {}
 
-    @Post("customer/register")
-    async customerRegistration(
-        @Body(ValidationPipe) createUserDto: CustomerRegistrationDto
-    ): Promise<Response> {
-        return await this.authService.registration(
-            this.customerService,
-            createUserDto,
-            "createCustomer"
-        );
+    @Get("/customer/google/login")
+    @UseGuards(CustomerGoogleAuthGuard)
+    customerGoogleAuth() {
+        return 1;
     }
 
-    @Post("gardens/register")
-    @HttpCode(HttpStatus.CREATED)
-    async gardenRegistration(
-        @Body(ValidationPipe) createUserDto: GardenRegistrationDto
-    ): Promise<Response> {
-        return await this.authService.registration(
-            this.gardenService,
-            createUserDto,
-            "createGarden"
-        );
+    @Get("/gardener/google/login")
+    @UseGuards(GardenerGoogleAuthGuard)
+    gardenerGoogleAuth() {
+        return 1;
     }
 
-    @UseGuards(JwtAuthGuard)
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles(USER_ROLES.SUPER_ADMIN)
-    @Post("admin/register")
-    async adminRegistration(
-        @Body(ValidationPipe) createUserDto: AdminRegistrationDto
-    ): Promise<Response> {
-        return await this.authService.registration(
-            this.adminService,
-            createUserDto,
-            "createAdmin"
-        );
+    @Get("/google/redirect")
+    @UseGuards(AuthGuard("google"))
+    async googleAuthRedirect(@Req() req: any, @Headers() headers: Headers) {
+        const userData = req.user;
+        const { role } = req.session;
+        const ipAddress = req.connection.remoteAddress;
+        const ua = headers["user-agent"];
+        const { deviceId } = req;
+        const metaData: LoginMetadata = { ipAddress, ua, deviceId };
+
+        if (role === "customer") {
+            return await this.authService.loginByGoogle(
+                this.customerService,
+                userData,
+                metaData
+            );
+        }
+        if (role === "gardener") {
+            return await this.authService.loginByGoogle(
+                this.gardenService,
+                userData,
+                metaData
+            );
+        }
     }
 
     @Post("customer/login")
@@ -96,6 +104,82 @@ export class AuthController {
             this.customerService,
             customerLoginDto,
             metaData
+        );
+    }
+
+    @Post("customer/register")
+    async customerRegistration(
+        @Body(ValidationPipe) createUserDto: CustomerRegistrationDto
+    ): Promise<Response> {
+        return await this.authService.registration(
+            this.customerService,
+            createUserDto,
+            "createCustomer",
+            false
+        );
+    }
+
+    @Post("gardens/register")
+    @HttpCode(HttpStatus.CREATED)
+    async gardenRegistration(
+        @Body(ValidationPipe) createUserDto: GardenerRegistrationDto
+    ): Promise<Response> {
+        return await this.authService.registration(
+            this.gardenService,
+            createUserDto,
+            "createGarden",
+            false
+        );
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.SUPER_ADMIN)
+    @Post("admin/register")
+    async adminRegistration(
+        @Body(ValidationPipe) createUserDto: AdminRegistrationDto
+    ): Promise<Response> {
+        return await this.authService.registration(
+            this.adminService,
+            createUserDto,
+            "createAdmin",
+            false
+        );
+    }
+
+    @Get("/customer/verify-email")
+    async verifyCustomerEmail(
+        @Query("token") token: string
+    ): Promise<Response> {
+        return this.authService.verifyEmail(this.customerService, token);
+    }
+
+    @Get("/gardener/verify-email")
+    async verifyGardenerEmail(
+        @Query("token") token: string
+    ): Promise<Response> {
+        return this.authService.verifyEmail(this.gardenService, token);
+    }
+
+    @Post("/gardener/resend-verify-email")
+    async resendVerificationGardenerEmail(
+        @Body() body: ResendVerifyEmailDto
+    ): Promise<Response> {
+        const { email } = body;
+        return await this.authService.resendVerificationEmail(
+            this.gardenService,
+            email
+        );
+    }
+
+    @Post("/customer/resend-verify-email")
+    async resendVerificationCustomerEmail(
+        @Body() body: ResendVerifyEmailDto
+    ): Promise<Response> {
+        const { email } = body;
+        return await this.authService.resendVerificationEmail(
+            this.customerService,
+            email
         );
     }
 
@@ -149,7 +233,7 @@ export class AuthController {
 
     @Patch("/change-password")
     async changePassword(
-        @UserDecorator() user: Garden | Admin,
+        @UserDecorator() user: Gardener | Admin,
         @Body() changePasswordDto: ChangePasswordDto
     ): Promise<Response> {
         try {
@@ -185,9 +269,40 @@ export class AuthController {
         }
     }
 
+    @Post("/customer/send-otp-forgot-password")
+    async sendOtpCustomerForgotPassword(
+        @Body() body: SendOtpForgotPasswordDto
+    ): Promise<Response> {
+        return this.authService.sendOtpForgotPassword(
+            this.customerService,
+            body
+        );
+    }
+
+    @Post("/gardener/send-otp-forgot-password")
+    async sendOtpGardenerForgotPassword(
+        @Body() body: SendOtpForgotPasswordDto
+    ): Promise<Response> {
+        return this.authService.sendOtpForgotPassword(this.gardenService, body);
+    }
+
+    @Post("/customer/forgot-password")
+    async forgotCustomerPassword(
+        @Body() body: ForgotPasswordDto
+    ): Promise<Response> {
+        return this.authService.forgotPassword(this.customerService, body);
+    }
+
+    @Post("/gardener/forgot-password")
+    async forgotGardenerPassword(
+        @Body() body: ForgotPasswordDto
+    ): Promise<Response> {
+        return this.authService.forgotPassword(this.gardenService, body);
+    }
+
     @Post("/logout")
     async logout(
-        @UserDecorator() user: Garden | Admin | Customer,
+        @UserDecorator() user: Gardener | Admin | Customer,
         @Req() req: any
     ): Promise<Response> {
         const { deviceId } = req;
@@ -200,7 +315,10 @@ export class AuthController {
             );
         }
 
-        if (user.role === USER_ROLES.ADMIN) {
+        if (
+            user.role === USER_ROLES.ADMIN ||
+            user.role === USER_ROLES.SUPER_ADMIN
+        ) {
             return this.authService.logout(
                 user._id.toString(),
                 deviceId,
@@ -218,7 +336,9 @@ export class AuthController {
     }
 
     @Get("/profile")
-    async getCurrentUserInfo(@UserDecorator() user: Garden): Promise<Response> {
+    async getCurrentUserInfo(
+        @UserDecorator() user: Gardener
+    ): Promise<Response> {
         if (user.role === USER_ROLES.CUSTOMER) {
             return this.authService.getCurrentUser(
                 this.customerService,

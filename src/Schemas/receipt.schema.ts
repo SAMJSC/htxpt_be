@@ -3,7 +3,7 @@ import mongoose, { HydratedDocument } from "mongoose";
 import { Bonsai } from "schemas/bonsai_tree.schema";
 import { Customer } from "schemas/customer.schema";
 import { Fruit } from "schemas/fruit.schema";
-import { Garden } from "schemas/garden.schema";
+import { Gardener } from "schemas/garden.schema";
 
 export type ReceiptDocument = HydratedDocument<Receipt>;
 
@@ -25,7 +25,7 @@ export class Receipt {
         ref: "Garden",
         required: true,
     })
-    garden: Garden;
+    garden: Gardener;
 
     @Prop({
         type: mongoose.Schema.Types.ObjectId,

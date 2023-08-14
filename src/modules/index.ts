@@ -1,19 +1,33 @@
 import { AdminModule } from "@modules/admin/admin.module";
 import { AuthModule } from "@modules/auth/auth.module";
+import { BlogModule } from "@modules/blog/blog.module";
 import { BonsaiModule } from "@modules/bonsai/bonsai.module";
+import { CloudinaryModule } from "@modules/cloudinary/cloudinary.module";
 import { CustomersModule } from "@modules/customers/customers.module";
 import { FruitsModule } from "@modules/fruits/fruits.module";
 import { GardensModule } from "@modules/gardens/gardens.module";
+import { HealthCheckModule } from "@modules/health-check/health-check.module";
+import { MailModule } from "@modules/mail/mail.module";
+import { BullModule } from "@nestjs/bull";
 import { PassportModule } from "@nestjs/passport";
 import { MongoDBModule } from "configs/mongodb.module";
+import { redisConfig } from "configs/redis.config";
 
 export const MODULES = [
     CustomersModule,
     MongoDBModule,
+    BullModule.forRoot({
+        redis: redisConfig,
+    }),
+    MailModule,
     AuthModule,
     GardensModule,
     PassportModule,
     FruitsModule,
     BonsaiModule,
     AdminModule,
+    PassportModule.register({ session: true }),
+    CloudinaryModule,
+    HealthCheckModule,
+    BlogModule,
 ];

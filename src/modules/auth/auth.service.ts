@@ -1,15 +1,19 @@
-import { USER_ROLES } from "@constants/common.constants";
+import { AUTHEN_METHODS, USER_ROLES } from "@constants/common.constants";
 import { AdminService } from "@modules/admin/admin.service";
 import { AdminLoginDto } from "@modules/auth/dtos/admin-login.dto";
 import { AdminRegistrationDto } from "@modules/auth/dtos/admin-registration.dto";
 import { ChangePasswordDto } from "@modules/auth/dtos/change-password.dto";
 import { CustomerLoginDto } from "@modules/auth/dtos/customer-login.dto";
 import { CustomerRegistrationDto } from "@modules/auth/dtos/customer-registration.dto";
+import { ForgotPasswordDto } from "@modules/auth/dtos/forgot-password.dto";
 import { GardenLoginDto } from "@modules/auth/dtos/garden-login.dto";
-import { GardenRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
+import { GardenerRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
 import { RefreshTokenDto } from "@modules/auth/dtos/refresh_token.dto";
+import { SendOtpForgotPasswordDto } from "@modules/auth/dtos/send-otp-password.dto";
 import { CustomersService } from "@modules/customers/customers.service";
 import { GardensService } from "@modules/gardens/gardens.service";
+import { RegisterEmailDto } from "@modules/mail/dtos/register-email.dto";
+import { MailService } from "@modules/mail/mail.service";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
@@ -19,16 +23,17 @@ import { httpResponse } from "@shared/response";
 import { Response } from "@shared/response/response.interface";
 import * as bcrypt from "bcrypt";
 import { Cache } from "cache-manager";
-import { scrypt } from "crypto";
+import crypto, { scrypt } from "crypto";
 import { Model } from "mongoose";
 import { DeviceSession } from "schemas/device_session.schema";
-import { Garden } from "schemas/garden.schema";
+import { Gardener } from "schemas/garden.schema";
 import { LoginMetadata, LoginResponseData, Session } from "type";
 import { SessionResponse } from "types/common.type";
 import { promisify } from "util";
 import {
     generateAccessJWT,
     generateRefreshJWT,
+    verifyAccessJWT,
     verifyRefreshJWT,
 } from "utils/jwt";
 
@@ -41,14 +46,27 @@ export class AuthService {
         private readonly adminService: AdminService,
         private readonly customerService: CustomersService,
         @Inject(CACHE_MANAGER)
-        private cacheManager: Cache
+        private cacheManager: Cache,
+        private readonly mailService: MailService
     ) {}
 
-    async validateGarden(phone: string, password: string): Promise<Garden> {
-        const garden = await this.gardenService.findOneByCondition({ phone });
+    private genToken(): number {
+        return Math.floor(100000 + Math.random() * 900000);
+    }
+
+    generateUniqueToken(): string {
+        return crypto.randomBytes(32).toString("hex");
+    }
+
+    async findUserByEmail(email: string): Promise<Customer> {
+        return this.customerService.findOneByCondition({ email });
+    }
+
+    async validateGarden(email: string, password: string): Promise<Gardener> {
+        const garden = await this.gardenService.findOneByCondition({ email });
         if (!garden) {
             throw new HttpException(
-                `Garden with ${phone} not exist yet`,
+                `Garden with ${email} not exist yet`,
                 HttpStatus.NOT_FOUND
             );
         }
@@ -71,7 +89,7 @@ export class AuthService {
         return garden;
     }
 
-    isDifferentUser(session: Session, garden: Admin | Garden) {
+    isDifferentUser(session: Session, garden: Admin | Gardener) {
         const userRoles = ["gardener", "admin", "super_admin"];
 
         for (const role of userRoles) {
@@ -82,7 +100,7 @@ export class AuthService {
     }
 
     async generateResponseLoginData(
-        user: Admin | Garden
+        user: Admin | Gardener
     ): Promise<LoginResponseData> {
         const userData = {
             ...(user as any).toObject(),
@@ -175,7 +193,7 @@ export class AuthService {
     }
 
     async createSession(
-        user: Admin | Garden | Customer,
+        user: Admin | Gardener | Customer,
         loginMetaData: LoginMetadata,
         service: AdminService | GardensService | CustomersService
     ): Promise<SessionResponse> {
@@ -213,6 +231,17 @@ export class AuthService {
             accessToken,
             refreshToken,
             loginMetaData,
+        };
+    }
+
+    googleLogin(req) {
+        if (!req.user) {
+            return "noUser from google";
+        }
+
+        return {
+            message: "User infor from google",
+            user: req.user,
         };
     }
 
@@ -283,10 +312,11 @@ export class AuthService {
     async registration(
         service: GardensService | AdminService | CustomersService,
         dto:
-            | GardenRegistrationDto
+            | GardenerRegistrationDto
             | AdminRegistrationDto
             | CustomerRegistrationDto,
-        creationMethod: string
+        creationMethod: string,
+        isGoogleAuth: boolean
     ): Promise<Response> {
         const { password, confirm_password, email } = dto;
 
@@ -294,15 +324,105 @@ export class AuthService {
         const phone = "phone" in dto ? dto.phone : null;
 
         await this.checkExistence({ email, userName, phone });
-        this.checkPasswordMatch(password, confirm_password);
 
-        const hashedPassword = await this.hashPassword(password);
+        let hashedPassword: string;
+        if (!isGoogleAuth) {
+            this.checkPasswordMatch(password, confirm_password);
+            hashedPassword = await this.hashPassword(password);
+        }
+
+        const newToken = generateAccessJWT(
+            { email },
+            {
+                expiresIn: Number(process.env.VERIFY_EMAIL_TOKEN_IN_SEC),
+            }
+        );
 
         service[creationMethod]({
             ...dto,
+            authen_method: isGoogleAuth
+                ? AUTHEN_METHODS.GOOGLE
+                : AUTHEN_METHODS.LOCAL,
+            email_verified: isGoogleAuth ? true : false,
             password: hashedPassword,
         });
+
+        if (!isGoogleAuth) {
+            const registerEmailDto: RegisterEmailDto = {
+                email: email,
+                token: newToken,
+                username: userName || email,
+                role:
+                    service instanceof CustomersService
+                        ? USER_ROLES.CUSTOMER
+                        : service instanceof GardensService
+                        ? USER_ROLES.GARDENER
+                        : USER_ROLES.ADMIN,
+            };
+
+            await this.mailService.sendRegisterMail(registerEmailDto);
+        }
+
         return httpResponse.REGISTER_SUCCESSFULLY;
+    }
+
+    async verifyEmail(
+        service: GardensService | AdminService | CustomersService,
+        token: string
+    ): Promise<Response> {
+        const payload = (await verifyAccessJWT(token)) as any;
+        const user = await service.findOneByCondition({
+            email: payload.email,
+        });
+
+        if (!user) {
+            throw new HttpException("User not found", HttpStatus.NOT_FOUND);
+        }
+
+        await service.update(user._id.toString(), {
+            email_verified: true,
+        });
+
+        return httpResponse.REGISTER_SUCCESSFULLY;
+    }
+
+    async resendVerificationEmail(
+        service: GardensService | AdminService | CustomersService,
+        email: string
+    ): Promise<Response> {
+        const user = await service.findOneByCondition({ email });
+
+        if (!user) {
+            throw new HttpException("User not found", HttpStatus.NOT_FOUND);
+        }
+
+        if (user.email_verified) {
+            throw new HttpException(
+                "Email is already verified",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        const newToken = generateAccessJWT(
+            { email },
+            { expiresIn: Number(process.env.VERIFY_EMAIL_TOKEN_IN_SEC) }
+        );
+
+        const registerEmailDto: RegisterEmailDto = {
+            email: email,
+            token: newToken,
+            username: user.user_name || email,
+            role:
+                service instanceof CustomersService
+                    ? USER_ROLES.CUSTOMER
+                    : service instanceof GardensService
+                    ? USER_ROLES.GARDENER
+                    : USER_ROLES.ADMIN,
+        };
+
+        await this.mailService.sendRegisterMail(registerEmailDto);
+
+        return httpResponse.EMAIL_RESENT_SUCCESSFULLY;
     }
 
     async login(
@@ -347,6 +467,80 @@ export class AuthService {
         ) {
             throw new HttpException(
                 "Invalid credentials",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        const session = await this.getSession(
+            loginData.deviceId,
+            user.role,
+            user._id.toString(),
+            undefined
+        );
+
+        if (session && new Date(session.expired_at).getTime() < Date.now()) {
+            await this.deviceSessionModel.deleteOne(session._id);
+            throw new HttpException("Session expired", HttpStatus.UNAUTHORIZED);
+        }
+
+        if (!session || this.isDifferentUser(session, user)) {
+            const { refreshToken, accessToken, loginMetaData, userData } =
+                await this.createSession(user, loginData, service);
+            return {
+                ...httpResponse.LOGIN_SUCCESSFULLY,
+                data: {
+                    user: {
+                        userData,
+                    },
+                    session: {
+                        accessToken,
+                        refreshToken,
+                        loginMetaData,
+                    },
+                },
+            };
+        }
+
+        return {
+            ...httpResponse.LOGIN_SUCCESSFULLY,
+            data: {
+                session: { refreshToken: session.refresh_token },
+            },
+        };
+    }
+
+    async loginByGoogle(
+        service: GardensService | CustomersService,
+        googleUserData: any,
+        loginData: LoginMetadata
+    ): Promise<Response> {
+        const { email } = googleUserData;
+
+        let user = await service.findOneByCondition({ email });
+
+        if (!user) {
+            if (service instanceof GardensService) {
+                await this.registration(
+                    service,
+                    googleUserData,
+                    "createGarden",
+                    true
+                );
+            } else if (service instanceof CustomersService) {
+                await this.registration(
+                    service,
+                    googleUserData,
+                    "createCustomer",
+                    true
+                );
+            }
+
+            user = await service.findOneByCondition({ email });
+        }
+
+        if (user.authen_method !== AUTHEN_METHODS.GOOGLE) {
+            throw new HttpException(
+                "User did not register with Google",
                 HttpStatus.BAD_REQUEST
             );
         }
@@ -453,6 +647,90 @@ export class AuthService {
             ...httpResponse.GET_PROFILE_SUCCESSFULLY,
             data: { session: { user: user } },
         };
+    }
+
+    async sendOtpForgotPasswordToMail(
+        service: AdminService | GardensService | CustomersService,
+        email: string
+    ) {
+        const newToken = this.genToken();
+        const userExisted = await service.findOneByCondition({
+            email,
+        });
+        await Promise.all([
+            this.cacheManager.set(`forgotPassword-${email}`, newToken, 30000),
+            this.mailService.sendForgotPasswordMail({
+                email: email,
+                username: userExisted.user_name,
+                token: `${newToken}`,
+            }),
+        ]);
+        return httpResponse.REGISTER_SEND_MAIL;
+    }
+
+    async sendOtpForgotPassword(
+        service: AdminService | GardensService | CustomersService,
+        body: SendOtpForgotPasswordDto
+    ): Promise<Response> {
+        const { email } = body;
+        const userExisted = await service.findOneByCondition({
+            email,
+        });
+
+        if (!userExisted) {
+            throw new HttpException(
+                "User doesn't existed",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+        if (!(service instanceof AdminService)) {
+            if (!userExisted.email_verified) {
+                throw new HttpException(
+                    "The email not verify yet",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+        return this.sendOtpForgotPasswordToMail(service, email);
+    }
+
+    async forgotPassword(
+        service: AdminService | GardensService | CustomersService,
+        body: ForgotPasswordDto
+    ) {
+        const { email, password, otp, confirmPassword } = body;
+        const [checkOTP, user] = await Promise.all([
+            this.cacheManager.get(`forgotPassword-${email}`),
+            service.findOneByCondition({ email }),
+        ]);
+
+        if (!(password === confirmPassword)) {
+            throw new HttpException(
+                "The confirm password and password are not the same",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        if (!checkOTP || otp != checkOTP) {
+            throw new HttpException("The opt not found", HttpStatus.NOT_FOUND);
+        }
+        if (!user) {
+            throw new HttpException("User not found", HttpStatus.NOT_FOUND);
+        }
+        const comparePassword = await bcrypt.compare(user.password, password);
+        if (comparePassword) {
+            throw new HttpException(
+                "The confirm password not the same",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        const passwordHash = await this.hashPassword(password);
+        await Promise.all([
+            service.update(user._id.toString(), { password: passwordHash }),
+            this.cacheManager.del(`forgotPassword-${email}`),
+        ]);
+        return httpResponse.FORGOT_PASSWORD_SUCCESS;
     }
 
     async logout(

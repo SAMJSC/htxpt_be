@@ -2,6 +2,7 @@ import { GENDER, USER_ROLES } from "@constants/common.constants";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { DeviceSession } from "@schemas/device_session.schema";
 import { BaseSchema } from "@shared/base.schema";
+import { Exclude, Expose } from "class-transformer";
 import mongoose, { HydratedDocument } from "mongoose";
 
 export type CustomerDocument = HydratedDocument<Customer>;
@@ -44,11 +45,16 @@ export class Customer extends BaseSchema {
     @Prop({ type: String, enum: Object.values(GENDER) })
     gender?: GENDER;
 
-    @Prop({ required: true })
-    password: string;
+    @Prop()
+    @Exclude({ toPlainOnly: true })
+    @Expose()
+    password?: string;
 
     @Prop()
     reset_token?: string;
+
+    @Prop({ type: String, enum: ["local", "google"], default: "local" })
+    authen_method?: string;
 
     @Prop({
         type: String,
@@ -56,6 +62,12 @@ export class Customer extends BaseSchema {
         default: USER_ROLES.CUSTOMER,
     })
     role: USER_ROLES;
+
+    @Prop({ default: false })
+    email_verified?: boolean;
+
+    @Prop({ default: false })
+    phone_verified?: boolean;
 
     @Prop([
         {

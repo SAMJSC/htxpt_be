@@ -13,7 +13,9 @@ import {
     Query,
     UseGuards,
 } from "@nestjs/common";
+import { Customer } from "@schemas/customer.schema";
 import { Response } from "@shared/response/response.interface";
+import { UserDecorator } from "decorators/current-garden.decorator";
 import { Roles } from "decorators/roles.decorator";
 import { PaginationOptions } from "types/common.type";
 @Controller("customers")
@@ -78,9 +80,12 @@ export class CustomersController {
     @Patch(":customerId")
     updateCustomer(
         @Param("customerId") customerId: string,
-        @Body() newCustomerInfoDto: UpdateCustomerDto
+        @Body() newCustomerInfoDto: UpdateCustomerDto,
+        @UserDecorator() user: Customer
     ): Promise<Response> {
         return this.customersService.updateCustomer(
+            user._id.toString(),
+            user.role,
             customerId,
             newCustomerInfoDto
         );

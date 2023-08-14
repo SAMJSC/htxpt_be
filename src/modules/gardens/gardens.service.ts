@@ -1,33 +1,33 @@
 import { USER_ROLES } from "@constants/common.constants";
-import { GardenRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
+import { GardenerRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
 import { UpdateGardenDto } from "@modules/gardens/dtos/update-gardens.dto";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { httpResponse } from "@shared/response";
 import { Response } from "@shared/response/response.interface";
-import { GardensRepositoryInterface } from "interfaces/gardens-repository.interface";
+import { GardenerRepositoryInterface } from "interfaces/gardens-repository.interface";
 import mongoose, { Model } from "mongoose";
 import { DeviceSession } from "schemas/device_session.schema";
-import { Garden } from "schemas/garden.schema";
+import { Gardener } from "schemas/garden.schema";
 import { BaseServiceAbstract } from "services/base.abstract.service";
 import { PaginationOptions } from "types/common.type";
 
 @Injectable()
-export class GardensService extends BaseServiceAbstract<Garden> {
+export class GardensService extends BaseServiceAbstract<Gardener> {
     constructor(
         @Inject("GardensRepositoryInterface")
-        private readonly gardenRepository: GardensRepositoryInterface,
+        private readonly gardenRepository: GardenerRepositoryInterface,
         @InjectModel(DeviceSession.name)
         private readonly deviceSessionModel: Model<DeviceSession>
     ) {
         super(gardenRepository);
     }
 
-    async getGardenById(gardenID: string): Promise<Response> {
-        const gardener = await this.gardenRepository.findOneById(gardenID);
+    async getGardenById(gardenerID: string): Promise<Response> {
+        const gardener = await this.gardenRepository.findOneById(gardenerID);
         if (!gardener) {
             throw new HttpException(
-                `The gardener with id ${gardenID} not found`,
+                `The gardener with id ${gardenerID} not found`,
                 HttpStatus.NOT_FOUND
             );
         }
@@ -56,15 +56,15 @@ export class GardensService extends BaseServiceAbstract<Garden> {
     }
 
     async createGarden(
-        createGardenDto: GardenRegistrationDto
-    ): Promise<Garden> {
+        createGardenerDto: GardenerRegistrationDto
+    ): Promise<Gardener> {
         return this.gardenRepository.create({
-            ...createGardenDto,
+            ...createGardenerDto,
             role: USER_ROLES.GARDENER,
         });
     }
 
-    async getGardenByEmail(email: string): Promise<Garden> {
+    async getGardenByEmail(email: string): Promise<Gardener> {
         try {
             const garden = await this.gardenRepository.findOneByCondition({
                 email,
@@ -85,6 +85,8 @@ export class GardensService extends BaseServiceAbstract<Garden> {
     }
 
     async updateGarden(
+        actionUserId: string,
+        actionUserRole: USER_ROLES,
         gardenId: string,
         updateGardenDto: UpdateGardenDto
     ): Promise<Response> {
@@ -94,6 +96,16 @@ export class GardensService extends BaseServiceAbstract<Garden> {
                 HttpStatus.BAD_REQUEST
             );
         }
+
+        if (actionUserRole === USER_ROLES.GARDENER) {
+            if (actionUserId !== gardenId) {
+                throw new HttpException(
+                    "You can not have permission",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
         const garden = await this.gardenRepository.findOneById(gardenId);
         if (!garden) {
             throw new HttpException(

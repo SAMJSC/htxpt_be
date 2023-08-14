@@ -27,6 +27,12 @@ export class Admin extends BaseSchema {
     })
     role: USER_ROLES;
 
+    @Prop({ default: false })
+    email_verified?: boolean;
+
+    @Prop({ default: false })
+    phone_verified?: boolean;
+
     @Prop([
         {
             type: mongoose.Schema.Types.ObjectId,

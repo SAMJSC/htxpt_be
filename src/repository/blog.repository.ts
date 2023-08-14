@@ -1,36 +1,36 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { GardenerRepositoryInterface } from "interfaces/gardens-repository.interface";
+import { Blog, BlogDocument } from "@schemas/blog.schema";
+import { BlogRepositoryInterface } from "interfaces/blog-repository.interface";
 import { FilterQuery, Model, PopulateOptions } from "mongoose";
-import { Gardener, GardenerDocument } from "schemas/garden.schema";
 import { FindAllResponse } from "types/common.type";
 
 import { BaseRepositoryAbstract } from "./base/base.abstract.repository";
 
 @Injectable()
-export class GardensRepository
-    extends BaseRepositoryAbstract<GardenerDocument>
-    implements GardenerRepositoryInterface
+export class BlogRepository
+    extends BaseRepositoryAbstract<BlogDocument>
+    implements BlogRepositoryInterface
 {
     constructor(
-        @InjectModel(Gardener.name)
-        private readonly gardenModel: Model<GardenerDocument>
+        @InjectModel(Blog.name)
+        private readonly blogModel: Model<BlogDocument>
     ) {
-        super(gardenModel);
+        super(blogModel);
     }
 
     async findAllWithSubFields(
-        condition: FilterQuery<GardenerDocument>,
+        condition: FilterQuery<BlogDocument>,
         options: {
             projection?: string;
             populate?: string[] | PopulateOptions | PopulateOptions[];
             offset?: number;
             limit?: number;
         }
-    ): Promise<FindAllResponse<GardenerDocument>> {
+    ): Promise<FindAllResponse<BlogDocument>> {
         const [count, items] = await Promise.all([
-            this.gardenModel.count({ ...condition, deleted_at: null }),
-            this.gardenModel
+            this.blogModel.count({ ...condition, deleted_at: null }),
+            this.blogModel
                 .find(
                     { ...condition, deleted_at: null },
                     options?.projection || "",
