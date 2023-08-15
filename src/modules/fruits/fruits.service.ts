@@ -3,7 +3,7 @@ import { CreateFruitSpecialDto } from "@modules/fruits/dtos/create-fruit-special
 import { CreateFruitsDto } from "@modules/fruits/dtos/create-fruits.dto";
 import { UpdateFruitSpecialDto } from "@modules/fruits/dtos/update-fruit-special.dto";
 import { UpdateFruitsDto } from "@modules/fruits/dtos/update-fruits.dto";
-import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { FruitSpecial } from "@schemas/friuitSpecial.schema";
 import { Fruit } from "@schemas/fruit.schema";
@@ -12,8 +12,13 @@ import {
     FruitCategoryDocument,
 } from "@schemas/fruit_categorie.chema";
 import { FruitImage } from "@schemas/fruit_image.schema";
+import { httpResponse } from "@shared/response";
+import { Response } from "@shared/response/response.interface";
 import { Express } from "express";
+import { FruitsRepositoryInterface } from "interfaces/fruits-repository.interface";
 import { Model } from "mongoose";
+import { PaginationOptions } from "types/common.type";
+
 @Injectable()
 export class FruitsService {
     constructor(
@@ -25,7 +30,9 @@ export class FruitsService {
         private readonly fruitCategoryModel: Model<FruitCategoryDocument>,
         private cloudinaryService: CloudinaryService,
         @InjectModel(FruitImage.name)
-        private fruitImage: Model<FruitImage>
+        private fruitImage: Model<FruitImage>,
+        @Inject("FruitRepositoryInterface")
+        private readonly fruitRepository: FruitsRepositoryInterface
     ) {}
 
     async createFruit(
@@ -139,12 +146,19 @@ export class FruitsService {
         return fruitSpecial;
     }
 
-    async getAllFruit(): Promise<Fruit[]> {
-        const fruits = await this.fruitModel
-            .find()
-            .populate("fruit_images")
-            .exec();
-        return fruits;
+    async getAllFruit(
+        filterObject: any,
+        options: PaginationOptions
+    ): Promise<Response> {
+        const fruits = await this.fruitRepository.findAll(filterObject, {
+            ...options,
+            populate: ["fruit_categories", "fruit_images"],
+        });
+
+        return {
+            ...httpResponse.GET_ALL_FRUIT_SUCCESSFULLY,
+            data: fruits,
+        };
     }
 
     async getFruitsById(fruitID: string): Promise<Fruit> {

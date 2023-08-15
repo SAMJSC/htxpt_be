@@ -108,4 +108,20 @@ export const httpResponse = {
         message: "Delete blog successfully",
         statusCode: 200,
     },
+    GET_ALL_FRUIT_SUCCESSFULLY: {
+        message: "Get all fruit successfully",
+        statusCode: 200,
+    },
+    DELETE_FRUIT_SUCCESSFULLY: {
+        message: "Remove the fruit successfully",
+        statusCode: 200,
+    },
+    CREATE_NEW_FRUIT_SUCCESSFULLY: {
+        message: "Create fruit successfully",
+        statusCode: 201,
+    },
+    UPDATE_FRUIT_SUCCESSFULLY: {
+        message: "Update the fruit successfully",
+        statusCode: 200,
+    },
 };

@@ -13,8 +13,10 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { PassportModule } from "@nestjs/passport";
 import { Admin, AdminSchema } from "@schemas/admin.schema";
 import { Customer, CustomerSchema } from "@schemas/customer.schema";
+import { Fruit, FruitSchema } from "@schemas/fruit.schema";
 import { AdminRepository } from "repository/admin.repository";
 import { CustomerRepository } from "repository/customer.repository";
+import { FruitRepository } from "repository/fruit.repository";
 import { GardensRepository } from "repository/gardens.repository";
 import {
     DeviceSession,
@@ -31,6 +33,7 @@ import { LocalStrategy } from "strategegies/local.strategy";
         MongooseModule.forFeature([
             { name: DeviceSession.name, schema: DeviceSessionSchema },
             { name: Gardener.name, schema: GardenerSchema },
+            { name: Fruit.name, schema: FruitSchema },
             { name: Admin.name, schema: AdminSchema },
             { name: Customer.name, schema: CustomerSchema },
         ]),
@@ -49,6 +52,7 @@ import { LocalStrategy } from "strategegies/local.strategy";
         LocalStrategy,
         JwtStrategy,
         { provide: "GardensRepositoryInterface", useClass: GardensRepository },
+        { provide: "FruitRepositoryInterface", useClass: FruitRepository },
         { provide: "AdminRepositoryInterface", useClass: AdminRepository },
         {
             provide: "CustomerRepositoryInterface",

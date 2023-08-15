@@ -13,6 +13,7 @@ import {
     FruitCategorySchema,
 } from "@schemas/fruit_categorie.chema";
 import { FruitImage, FruitImageSchema } from "@schemas/fruit_image.schema";
+import { FruitRepository } from "repository/fruit.repository";
 
 @Module({
     imports: [
@@ -26,6 +27,9 @@ import { FruitImage, FruitImageSchema } from "@schemas/fruit_image.schema";
     ],
     controllers: [FruitsController],
     exports: [FruitsService],
-    providers: [FruitsService],
+    providers: [
+        FruitsService,
+        { provide: "FruitRepositoryInterface", useClass: FruitRepository },
+    ],
 })
 export class FruitsModule {}
