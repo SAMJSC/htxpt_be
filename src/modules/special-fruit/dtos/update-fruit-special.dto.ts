@@ -1,34 +1,30 @@
-import {
-    IsNotEmpty,
-    IsNumber,
-    IsOptional,
-    IsString,
-    Min,
-} from "class-validator";
+import { Transform } from "class-transformer";
+import { IsNumber, IsOptional, IsString, Min } from "class-validator";
 import mongoose from "mongoose";
 
 export class UpdateFruitSpecialDto {
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     readonly fruit_name: string;
 
-    @IsNotEmpty()
+    @Transform(({ value }) => Number(value))
+    @IsOptional()
     @IsNumber()
     @Min(0)
     readonly quantity: number;
 
     @IsOptional()
-    readonly fruit_images: mongoose.Schema.Types.ObjectId;
+    fruit_images: mongoose.Schema.Types.ObjectId;
 
-    @IsNotEmpty()
+    @IsOptional()
     readonly range_price: number[];
 
-    @IsNotEmpty()
+    @IsOptional()
     readonly shape: string[];
 
-    @IsNotEmpty()
+    @IsOptional()
     readonly dimeter: number[];
 
-    @IsNotEmpty()
+    @IsOptional()
     readonly weight: number[];
 }

@@ -10,6 +10,7 @@ import { LocalStrategy } from "strategegies/local.strategy";
 
 import { AuthController } from "./modules/auth/auth.controller";
 import { BlogController } from "./modules/blog/blog.controller";
+import { FruitCategoryController } from "./modules/fruit-category/fruit-category.controller";
 
 const modules = [...MODULES];
 
@@ -45,6 +46,6 @@ const modules = [...MODULES];
             useClass: JwtMalformedFilter,
         },
     ],
-    controllers: [AuthController, BlogController],
+    controllers: [AuthController, BlogController, FruitCategoryController],
 })
 export class AppModule {}

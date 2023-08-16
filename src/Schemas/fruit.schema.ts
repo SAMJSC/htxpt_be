@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { BaseSchema } from "@shared/base.schema";
 import mongoose, { HydratedDocument } from "mongoose";
-import { FruitCategory } from "schemas/fruit_categorie.chema";
+import { FruitCategory } from "@schemas/fruit_category.chema";
 import { FruitImage } from "schemas/fruit_image.schema";
 import { Gardener } from "schemas/garden.schema";
 
@@ -10,7 +11,7 @@ export type FruitDocument = HydratedDocument<Fruit>;
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
     collection: "fruits",
 })
-export class Fruit {
+export class Fruit extends BaseSchema {
     @Prop()
     fruit_name: string;
 
@@ -38,7 +39,7 @@ export class Fruit {
 
     @Prop({
         type: mongoose.Schema.Types.ObjectId,
-        ref: "FruitCategories",
+        ref: "FruitCategory",
         required: false,
     })
     fruit_categories?: FruitCategory;

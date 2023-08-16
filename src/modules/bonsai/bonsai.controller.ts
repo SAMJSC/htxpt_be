@@ -35,7 +35,6 @@ export class BonsaiController {
     @Roles(USER_ROLES.GARDENER)
     @UseInterceptors(FileInterceptor("bonsai_images"))
     async addFruit(
-        // @Res() res: any,
         @Body() createBonsai: CreateBonsaiDto,
         @UserDecorator() garden: Gardener,
         @UploadedFile() image?: Express.Multer.File

@@ -1,15 +1,16 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { BaseSchema } from "@shared/base.schema";
 import mongoose, { HydratedDocument } from "mongoose";
 import { FruitImage } from "schemas/fruit_image.schema";
 import { Gardener } from "schemas/garden.schema";
 
-export type FruitSpecialDocument = HydratedDocument<FruitSpecial>;
+export type SpecialFruitDocument = HydratedDocument<SpecialFruit>;
 
 @Schema({
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
-    collection: "fruitSpecial",
+    collection: "fruit_special",
 })
-export class FruitSpecial {
+export class SpecialFruit extends BaseSchema {
     @Prop()
     fruit_name: string;
 
@@ -35,12 +36,14 @@ export class FruitSpecial {
     })
     gardens?: Gardener;
 
-    @Prop({
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "FruitImages",
-        required: false,
-    })
-    fruit_images?: FruitImage;
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "FruitImage",
+            required: false,
+        },
+    ])
+    fruit_images?: FruitImage[];
 }
 
-export const FruitSpecialSchema = SchemaFactory.createForClass(FruitSpecial);
+export const FruitSpecialSchema = SchemaFactory.createForClass(SpecialFruit);

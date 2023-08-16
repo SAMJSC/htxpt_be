@@ -108,4 +108,40 @@ export const httpResponse = {
         message: "Delete blog successfully",
         statusCode: 200,
     },
+    GET_ALL_FRUIT_SUCCESSFULLY: {
+        message: "Get all fruit successfully",
+        statusCode: 200,
+    },
+    DELETE_FRUIT_SUCCESSFULLY: {
+        message: "Remove the fruit successfully",
+        statusCode: 200,
+    },
+    GET_FRUIT_BY_ID_SUCCESSFULLY: {
+        message: "Get fruit by id successfully",
+        statusCode: 200,
+    },
+    CREATE_NEW_FRUIT_SUCCESSFULLY: {
+        message: "Create fruit successfully",
+        statusCode: 201,
+    },
+    UPDATE_FRUIT_SUCCESSFULLY: {
+        message: "Update the fruit successfully",
+        statusCode: 200,
+    },
+    GET_ALL_FRUIT_CATEGORY_SUCCESSFULLY: {
+        message: "Get all fruit category successfully",
+        statusCode: 200,
+    },
+    CREATE_FRUIT_CATEGORY_SUCCESSFULLY: {
+        message: "Create fruit category successfully",
+        statusCode: 200,
+    },
+    UPDATE_FRUIT_CATEGORY_SUCCESSFULLY: {
+        message: "Update fruit category successfully",
+        statusCode: 200,
+    },
+    DELETE_FRUIT_CATEGORY_SUCCESSFULLY: {
+        message: "Remove fruit category successfully",
+        statusCode: 200,
+    },
 };

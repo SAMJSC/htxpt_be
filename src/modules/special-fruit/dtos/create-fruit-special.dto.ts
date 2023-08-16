@@ -1,3 +1,4 @@
+import { Transform } from "class-transformer";
 import {
     IsNotEmpty,
     IsNumber,
@@ -12,6 +13,7 @@ export class CreateFruitSpecialDto {
     @IsString()
     readonly fruit_name: string;
 
+    @Transform(({ value }) => Number(value))
     @IsNotEmpty()
     @IsNumber()
     @Min(0)

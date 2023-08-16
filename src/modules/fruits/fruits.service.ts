@@ -1,41 +1,42 @@
 import { CloudinaryService } from "@modules/cloudinary/cloudinary.service";
-import { CreateFruitSpecialDto } from "@modules/fruits/dtos/create-fruit-special.dto";
 import { CreateFruitsDto } from "@modules/fruits/dtos/create-fruits.dto";
-import { UpdateFruitSpecialDto } from "@modules/fruits/dtos/update-fruit-special.dto";
 import { UpdateFruitsDto } from "@modules/fruits/dtos/update-fruits.dto";
-import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { FruitSpecial } from "@schemas/friuitSpecial.schema";
 import { Fruit } from "@schemas/fruit.schema";
 import {
     FruitCategory,
     FruitCategoryDocument,
-} from "@schemas/fruit_categorie.chema";
+} from "@schemas/fruit_category.chema";
 import { FruitImage } from "@schemas/fruit_image.schema";
+import { httpResponse } from "@shared/response";
+import { Response } from "@shared/response/response.interface";
 import { Express } from "express";
+import { FruitsRepositoryInterface } from "interfaces/fruits-repository.interface";
 import { Model } from "mongoose";
+import { PaginationOptions } from "types/common.type";
+
 @Injectable()
 export class FruitsService {
     constructor(
         @InjectModel(Fruit.name)
         private fruitModel: Model<Fruit>,
-        @InjectModel(FruitSpecial.name)
-        private fruitSpecialModel: Model<FruitSpecial>,
         @InjectModel(FruitCategory.name)
         private readonly fruitCategoryModel: Model<FruitCategoryDocument>,
         private cloudinaryService: CloudinaryService,
         @InjectModel(FruitImage.name)
-        private fruitImage: Model<FruitImage>
+        private fruitImage: Model<FruitImage>,
+        @Inject("FruitRepositoryInterface")
+        private readonly fruitRepository: FruitsRepositoryInterface
     ) {}
 
     async createFruit(
         createFruitDto: CreateFruitsDto,
         gardens: any,
         image?: Express.Multer.File
-    ): Promise<void> {
+    ): Promise<Response> {
         try {
-            let newImage;
-            let newFruit;
+            let newImage: any;
             if (image) {
                 const uploadResult = await this.cloudinaryService.uploadFile(
                     image
@@ -87,6 +88,7 @@ export class FruitsService {
                     fruit_categories: isFruitCategory.fruit_categories,
                     fruit_images: fruitImagesArray,
                 });
+                return httpResponse.CREATE_NEW_FRUIT_SUCCESSFULLY;
             } else {
                 const createFruit = new this.fruitModel({
                     fruit_name: createFruitDto.fruit_name,
@@ -95,8 +97,8 @@ export class FruitsService {
                     fruit_categories: isFruitCategoryName,
                     fruit_images: [newImageId],
                 });
-                newFruit = await createFruit.save();
-                return newFruit;
+                await createFruit.save();
+                return httpResponse.CREATE_NEW_FRUIT_SUCCESSFULLY;
             }
         } catch (error) {
             if (error.code === 11000) {
@@ -109,62 +111,53 @@ export class FruitsService {
         }
     }
 
-    async createFruitSpecial(
-        createFruitDto: CreateFruitSpecialDto,
-        gardens: any
-    ): Promise<void> {
-        try {
-            const createFruitSpecial = new this.fruitSpecialModel({
-                fruit_name: createFruitDto.fruit_name,
-                range_price: createFruitDto.range_price,
-                shape: createFruitDto.shape,
-                dimeter: createFruitDto.dimeter,
-                weight: createFruitDto.weight,
-                quantity: createFruitDto.quantity,
-                gardens: gardens,
-            });
-            await createFruitSpecial.save();
-        } catch (error) {
-            if (error.code === 11000) {
-                throw new HttpException(
-                    "Fruit already exists",
-                    HttpStatus.CONFLICT
-                );
-            }
-            throw error;
-        }
-    }
-    async getAllFruitSpecial(): Promise<FruitSpecial[]> {
-        const fruitSpecial = await this.fruitSpecialModel.find().exec();
-        return fruitSpecial;
+    async getAllFruit(
+        filterObject: any,
+        options: PaginationOptions
+    ): Promise<Response> {
+        const fruits = await this.fruitRepository.findAll(filterObject, {
+            ...options,
+            populate: ["fruit_categories", "fruit_images"],
+        });
+
+        return {
+            ...httpResponse.GET_ALL_FRUIT_SUCCESSFULLY,
+            data: fruits,
+        };
     }
 
-    async getAllFruit(): Promise<Fruit[]> {
-        const fruits = await this.fruitModel
-            .find()
-            .populate("fruit_images")
-            .exec();
-        return fruits;
-    }
-
-    async getFruitsById(fruitID: string): Promise<Fruit> {
-        return await this.fruitModel
+    async getFruitsById(fruitID: string): Promise<Response> {
+        const fruit = await this.fruitModel
             .findById(fruitID)
             .populate("fruit_images")
             .exec();
-    }
-
-    async getFruitSpecialById(fruitSpecialID: string): Promise<FruitSpecial> {
-        return await this.fruitSpecialModel.findById(fruitSpecialID).exec();
+        if (!fruit) {
+            throw new HttpException(
+                `Cannot find the fruit with the ID: ${fruitID}`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+        return {
+            ...httpResponse.GET_FRUIT_BY_ID_SUCCESSFULLY,
+            data: fruit,
+        };
     }
 
     async updateFruits(
         fruitID: string,
         updateFruitsDto: UpdateFruitsDto,
-        image?: Express.Multer.File // add this line
-    ): Promise<Fruit> {
-        let newImage;
+        image?: Express.Multer.File
+    ): Promise<Response> {
+        let newImage: any;
 
+        const isFruitExisted = await this.fruitRepository.findOneById(fruitID);
+
+        if (!isFruitExisted) {
+            throw new HttpException(
+                `Can not find the fruit with this id ${fruitID}`,
+                HttpStatus.NOT_FOUND
+            );
+        }
         if (image) {
             const uploadResult = await this.cloudinaryService.uploadFile(image);
             newImage = new this.fruitImage({
@@ -182,25 +175,13 @@ export class FruitsService {
         );
 
         const fruitNew = await this.fruitModel.findById(updatedFruits.id);
-        return fruitNew;
+        return {
+            ...httpResponse.UPDATE_FRUIT_SUCCESSFULLY,
+            data: fruitNew,
+        };
     }
 
-    async updateFruitSpecial(
-        fruitSpecialID: string,
-        updateFruitSpecialDto: UpdateFruitSpecialDto
-    ): Promise<FruitSpecial> {
-        const updatedFruitSpecial =
-            await this.fruitSpecialModel.findByIdAndUpdate(
-                fruitSpecialID,
-                updateFruitSpecialDto
-            );
-        const fruitNew = await this.fruitSpecialModel.findById(
-            updatedFruitSpecial.id
-        );
-        return fruitNew;
-    }
-
-    async deleteFruits(fruitID: string): Promise<any> {
+    async deleteFruits(fruitID: string): Promise<Response> {
         const fruit = await this.fruitModel.findById(fruitID);
         const fruitImage = await this.fruitImage.findById(fruit.fruit_images);
 
@@ -208,22 +189,14 @@ export class FruitsService {
             await this.cloudinaryService.deleteFile(fruitImage.public_id);
 
             await this.fruitImage.findByIdAndRemove(fruit.fruit_images);
+            await this.fruitModel.findByIdAndRemove(fruitID);
 
-            const deletedFruits = await this.fruitModel.findByIdAndRemove(
-                fruitID
-            );
-            return deletedFruits;
+            return httpResponse.DELETE_FRUIT_SUCCESSFULLY;
         } else {
             throw new HttpException(
                 `Fruit with ID ${fruitID} not found`,
                 HttpStatus.NOT_FOUND
             );
         }
-    }
-
-    async deleteFruitSpecial(fruitSpecialID: string): Promise<any> {
-        const deletedFruitSpecial =
-            await this.fruitSpecialModel.findByIdAndRemove(fruitSpecialID);
-        return deletedFruitSpecial;
     }
 }

@@ -1,9 +1,9 @@
 import { USER_ROLES } from "@constants/common.constants";
 import { JwtAuthGuard } from "@guards/jwt-auth.guard";
 import { RolesGuard } from "@guards/roles.guard";
-import { CreateFruitsDto } from "@modules/fruits/dtos/create-fruits.dto";
-import { UpdateFruitsDto } from "@modules/fruits/dtos/update-fruits.dto";
-import { FruitsService } from "@modules/fruits/fruits.service";
+import { CreateFruitSpecialDto } from "@modules/special-fruit/dtos/create-fruit-special.dto";
+import { UpdateFruitSpecialDto } from "@modules/special-fruit/dtos/update-fruit-special.dto";
+import { SpecialFruitService } from "@modules/special-fruit/special-fruit.service";
 import {
     Body,
     Controller,
@@ -25,35 +25,39 @@ import { Roles } from "decorators/roles.decorator";
 import { Express } from "express";
 import { PaginationOptions } from "types/common.type";
 
-@Controller("fruit")
-export class FruitsController {
-    constructor(private readonly fruitsService: FruitsService) {}
+@Controller("special-fruit")
+export class SpecialFruitController {
+    constructor(private readonly specialFruitService: SpecialFruitService) {}
 
     @Post("/create")
     @UseGuards(RolesGuard, JwtAuthGuard)
     @Roles(USER_ROLES.GARDENER)
     @UseInterceptors(FileInterceptor("fruit_images"))
-    async addFruit(
-        @Body() createFruitDto: CreateFruitsDto,
+    async addFruitSpecial(
+        @Body() createFruitSpecialDto: CreateFruitSpecialDto,
         @UserDecorator() garden: Gardener,
         @UploadedFile() image?: Express.Multer.File
     ): Promise<Response> {
-        const parsedDto: CreateFruitsDto = {
-            fruit_name: createFruitDto.fruit_name,
-            fruit_category_name: createFruitDto.fruit_category_name,
-            fruit_categories: createFruitDto.fruit_categories,
-            quantity: Number(createFruitDto.quantity),
-            fruit_category_quantity: Number(
-                createFruitDto.fruit_category_quantity
-            ),
-            fruit_images: createFruitDto.fruit_images,
-            range_price: JSON.parse(`[${createFruitDto.range_price}]`),
-            shape: JSON.parse(`[${createFruitDto.shape}]`),
-            dimeter: JSON.parse(`[${createFruitDto.dimeter}]`),
-            weight: JSON.parse(`[${createFruitDto.weight}]`),
-        };
+        const {
+            fruit_name,
+            quantity,
+            fruit_images,
+            range_price,
+            shape,
+            dimeter,
+            weight,
+        } = createFruitSpecialDto;
 
-        return await this.fruitsService.createFruit(
+        const parsedDto = {
+            fruit_name,
+            quantity: Number(quantity),
+            fruit_images,
+            range_price: JSON.parse(`[${range_price}]`),
+            shape: JSON.parse(`[${shape}]`),
+            dimeter: JSON.parse(`[${dimeter}]`),
+            weight: JSON.parse(`[${weight}]`),
+        };
+        return await this.specialFruitService.createFruitSpecial(
             parsedDto,
             garden._id.toString(),
             image
@@ -61,7 +65,7 @@ export class FruitsController {
     }
 
     @Get()
-    async findAll(@Query() query: any): Promise<Response> {
+    async getAllFruitSpecial(@Query() query: any): Promise<Response> {
         const filterObject = {};
         const operationsMap = {
             gt: "$gt",
@@ -96,31 +100,41 @@ export class FruitsController {
             limit: Number(query.limit) || 10,
             skip: Number(query.skip) || 0,
         };
-
-        return await this.fruitsService.getAllFruit(filterObject, options);
+        return await this.specialFruitService.getAllFruitSpecial(
+            filterObject,
+            options
+        );
     }
 
-    @Get(":fruitID")
-    async getFruitById(@Param("fruitID") fruitID: string): Promise<Response> {
-        return await this.fruitsService.getFruitsById(fruitID);
+    @Get("/:fruitSpecialID")
+    async getFruitSpecialById(
+        @Param("fruitSpecialID") fruitSpecialID: string
+    ): Promise<Response> {
+        return await this.specialFruitService.getFruitSpecialById(
+            fruitSpecialID
+        );
     }
 
-    @Patch("/:fruitID")
+    @Patch("/:fruitSpecialID")
     @UseInterceptors(FileInterceptor("image"))
-    async updateFruit(
-        @Param("fruitID") fruitID: string,
-        @Body() updateFruits: UpdateFruitsDto,
+    async updateFruitSpecial(
+        @Param("fruitSpecialID") fruitSpecialID: string,
+        @Body() updateFruitSpecial: UpdateFruitSpecialDto,
         @UploadedFile() image?: Express.Multer.File
     ): Promise<Response> {
-        return await this.fruitsService.updateFruits(
-            fruitID,
-            updateFruits,
+        return await this.specialFruitService.updateFruitSpecial(
+            fruitSpecialID,
+            updateFruitSpecial,
             image
         );
     }
 
-    @Delete("/:fruitID")
-    async deleteFruit(@Param("fruitID") fruitID: string): Promise<Response> {
-        return await this.fruitsService.deleteFruits(fruitID);
+    @Delete("/:fruitSpecialID")
+    async deleteFruitSpecial(
+        @Param("fruitSpecialID") fruitSpecialID: string
+    ): Promise<Response> {
+        return await this.specialFruitService.deleteFruitSpecial(
+            fruitSpecialID
+        );
     }
 }
