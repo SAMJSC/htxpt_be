@@ -4,10 +4,12 @@ import { BlogModule } from "@modules/blog/blog.module";
 import { BonsaiModule } from "@modules/bonsai/bonsai.module";
 import { CloudinaryModule } from "@modules/cloudinary/cloudinary.module";
 import { CustomersModule } from "@modules/customers/customers.module";
+import { FruitCategoryModule } from "@modules/fruit-category/fruit-category.module";
 import { FruitsModule } from "@modules/fruits/fruits.module";
 import { GardensModule } from "@modules/gardens/gardens.module";
 import { HealthCheckModule } from "@modules/health-check/health-check.module";
 import { MailModule } from "@modules/mail/mail.module";
+import { SpecialFruitModule } from "@modules/special-fruit/special-fruit.module";
 import { BullModule } from "@nestjs/bull";
 import { PassportModule } from "@nestjs/passport";
 import { MongoDBModule } from "configs/mongodb.module";
@@ -24,8 +26,10 @@ export const MODULES = [
     GardensModule,
     PassportModule,
     FruitsModule,
+    SpecialFruitModule,
     BonsaiModule,
     AdminModule,
+    FruitCategoryModule,
     PassportModule.register({ session: true }),
     CloudinaryModule,
     HealthCheckModule,

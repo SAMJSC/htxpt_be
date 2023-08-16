@@ -1,9 +1,7 @@
 import { CloudinaryModule } from "@modules/cloudinary/cloudinary.module";
-import { FruitsController } from "@modules/fruits/fruits.controller";
-import { FruitsService } from "@modules/fruits/fruits.service";
+import { SpecialFruitController } from "@modules/special-fruit/special-fruit.controller";
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
-import { Fruit, FruitSchema } from "@schemas/fruit.schema";
 import {
     FruitCategory,
     FruitCategorySchema,
@@ -13,23 +11,26 @@ import {
     FruitSpecialSchema,
     SpecialFruit,
 } from "@schemas/special_fruit.schema";
-import { FruitRepository } from "repository/fruit.repository";
+import { SpecialFruitRepository } from "repository/special-fruit.repository";
+
+import { SpecialFruitService } from "./special-fruit.service";
 
 @Module({
     imports: [
         MongooseModule.forFeature([
-            { name: Fruit.name, schema: FruitSchema },
             { name: FruitCategory.name, schema: FruitCategorySchema },
             { name: SpecialFruit.name, schema: FruitSpecialSchema },
             { name: FruitImage.name, schema: FruitImageSchema },
         ]),
         CloudinaryModule,
     ],
-    controllers: [FruitsController],
-    exports: [FruitsService],
+    controllers: [SpecialFruitController],
     providers: [
-        FruitsService,
-        { provide: "FruitRepositoryInterface", useClass: FruitRepository },
+        SpecialFruitService,
+        {
+            provide: "SpecialFruitRepositoryInterface",
+            useClass: SpecialFruitRepository,
+        },
     ],
 })
-export class FruitsModule {}
+export class SpecialFruitModule {}

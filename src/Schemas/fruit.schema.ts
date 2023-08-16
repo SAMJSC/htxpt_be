@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { BaseSchema } from "@shared/base.schema";
 import mongoose, { HydratedDocument } from "mongoose";
-import { FruitCategory } from "schemas/fruit_categorie.chema";
+import { FruitCategory } from "@schemas/fruit_category.chema";
 import { FruitImage } from "schemas/fruit_image.schema";
 import { Gardener } from "schemas/garden.schema";
 
