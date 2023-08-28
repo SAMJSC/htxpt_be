@@ -129,7 +129,7 @@ export class FruitsService {
     async getFruitsById(fruitID: string): Promise<Response> {
         const fruit = await this.fruitModel
             .findById(fruitID)
-            .populate("fruit_images")
+            .populate(["fruit_categories", "fruit_images"])
             .exec();
         if (!fruit) {
             throw new HttpException(
