@@ -9,11 +9,14 @@ import {
     FruitCategorySchema,
 } from "@schemas/fruit_category.chema";
 import { FruitImage, FruitImageSchema } from "@schemas/fruit_image.schema";
+import { Gardener, GardenerSchema } from "@schemas/garden.schema";
 import {
     FruitSpecialSchema,
     SpecialFruit,
 } from "@schemas/special_fruit.schema";
 import { FruitRepository } from "repository/fruit.repository";
+import { FruitCategoryRepository } from "repository/fruit-category.repository";
+import { FruitImageRepository } from "repository/fruit-image.repository";
 
 @Module({
     imports: [
@@ -22,6 +25,7 @@ import { FruitRepository } from "repository/fruit.repository";
             { name: FruitCategory.name, schema: FruitCategorySchema },
             { name: SpecialFruit.name, schema: FruitSpecialSchema },
             { name: FruitImage.name, schema: FruitImageSchema },
+            { name: Gardener.name, schema: GardenerSchema },
         ]),
         CloudinaryModule,
     ],
@@ -30,6 +34,14 @@ import { FruitRepository } from "repository/fruit.repository";
     providers: [
         FruitsService,
         { provide: "FruitRepositoryInterface", useClass: FruitRepository },
+        {
+            provide: "FruitImageRepositoryInterface",
+            useClass: FruitImageRepository,
+        },
+        {
+            provide: "FruitCategoryRepositoryInterface",
+            useClass: FruitCategoryRepository,
+        },
     ],
 })
 export class FruitsModule {}

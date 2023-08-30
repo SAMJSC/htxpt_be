@@ -9,9 +9,11 @@ import {
     FruitCategoryDocument,
 } from "@schemas/fruit_category.chema";
 import { FruitImage } from "@schemas/fruit_image.schema";
+import { Gardener } from "@schemas/garden.schema";
 import { httpResponse } from "@shared/response";
 import { Response } from "@shared/response/response.interface";
 import { Express } from "express";
+import { FruitImageRepositoryInterface } from "interfaces/fruit-image-repository.interface";
 import { FruitsRepositoryInterface } from "interfaces/fruits-repository.interface";
 import { Model } from "mongoose";
 import { PaginationOptions } from "types/common.type";
@@ -24,90 +26,93 @@ export class FruitsService {
         @InjectModel(FruitCategory.name)
         private readonly fruitCategoryModel: Model<FruitCategoryDocument>,
         private cloudinaryService: CloudinaryService,
-        @InjectModel(FruitImage.name)
-        private fruitImage: Model<FruitImage>,
+        @Inject("FruitImageRepositoryInterface")
+        private readonly fruitImageRepository: FruitImageRepositoryInterface,
+        @Inject("FruitCategoryRepositoryInterface")
+        private readonly fruitCategoryRepository: FruitImageRepositoryInterface,
         @Inject("FruitRepositoryInterface")
-        private readonly fruitRepository: FruitsRepositoryInterface
+        private readonly fruitRepository: FruitsRepositoryInterface,
+        @InjectModel(Gardener.name)
+        private gardenerModel: Model<Gardener>
     ) {}
 
     async createFruit(
         createFruitDto: CreateFruitsDto,
-        gardens: any,
-        image?: Express.Multer.File
+        gardens: Gardener,
+        images?: Express.Multer.File[]
     ): Promise<Response> {
-        try {
-            let newImage: any;
-            if (image) {
-                const uploadResult = await this.cloudinaryService.uploadFile(
-                    image
-                );
-                newImage = new this.fruitImage({
-                    url: uploadResult.url,
-                    public_id: uploadResult.public_id,
-                });
-                await newImage.save();
-            }
-
-            const isFruitCategoryName = await this.fruitCategoryModel.findOne({
+        let newImages: any[] = [];
+        const isFruitCategoryExisted =
+            await this.fruitCategoryRepository.findOneByCondition({
                 category_name: createFruitDto.fruit_category_name,
             });
 
-            if (!isFruitCategoryName) {
-                throw new HttpException(
-                    "Error! can't found fruit category",
-                    HttpStatus.NOT_FOUND
-                );
-            }
+        if (!isFruitCategoryExisted) {
+            throw new HttpException(
+                "This fruit category doesn't existed yet",
+                HttpStatus.BAD_REQUEST
+            );
+        }
 
-            const checkFruitCategory = await this.fruitCategoryModel
-                .findOne({ category_name: createFruitDto.fruit_category_name })
-                .exec();
-
-            const isFruitCategory = await this.fruitModel.findOne({
-                fruit_categories: checkFruitCategory._id,
+        const isGardenerFruitExisted =
+            await this.fruitRepository.findOneByCondition({
+                gardens: gardens,
+                fruit_categories: isFruitCategoryExisted._id,
             });
 
-            const newImageId = newImage ? newImage._id : null;
+        if (images || images.length > 0) {
+            newImages = await Promise.all(
+                images.map(async (image) => {
+                    try {
+                        const { url, public_id } =
+                            await this.cloudinaryService.uploadFile(image);
+                        return this.fruitImageRepository.create({
+                            url,
+                            public_id,
+                            fruit: isGardenerFruitExisted._id,
+                        });
+                    } catch (error) {
+                        throw new HttpException(
+                            "Error processing images",
+                            HttpStatus.INTERNAL_SERVER_ERROR
+                        );
+                    }
+                })
+            );
+        }
 
-            if (isFruitCategory && checkFruitCategory) {
-                const fruitImagesArray = Array.isArray(
-                    isFruitCategory.fruit_images
-                )
-                    ? isFruitCategory.fruit_images
-                    : [isFruitCategory.fruit_images];
-
-                if (newImageId) {
-                    fruitImagesArray.unshift(newImageId);
-                }
-
-                await this.fruitModel.findByIdAndUpdate(isFruitCategory._id, {
+        if (isGardenerFruitExisted) {
+            await this.fruitModel.findByIdAndUpdate(
+                isGardenerFruitExisted._id,
+                {
                     fruit_name: createFruitDto.fruit_name,
                     gardens: gardens,
                     quantity:
-                        isFruitCategory.quantity + createFruitDto.quantity,
-                    fruit_categories: isFruitCategory.fruit_categories,
-                    fruit_images: fruitImagesArray,
-                });
-                return httpResponse.CREATE_NEW_FRUIT_SUCCESSFULLY;
-            } else {
-                const createFruit = new this.fruitModel({
-                    fruit_name: createFruitDto.fruit_name,
-                    quantity: createFruitDto.quantity,
-                    gardens: gardens,
-                    fruit_categories: isFruitCategoryName,
-                    fruit_images: [newImageId],
-                });
-                await createFruit.save();
-                return httpResponse.CREATE_NEW_FRUIT_SUCCESSFULLY;
-            }
-        } catch (error) {
-            if (error.code === 11000) {
-                throw new HttpException(
-                    "Fruit already exists",
-                    HttpStatus.CONFLICT
-                );
-            }
-            throw error;
+                        isGardenerFruitExisted.quantity +
+                        createFruitDto.quantity,
+                    fruit_categories: isGardenerFruitExisted.fruit_categories,
+                    fruit_images: [
+                        ...isGardenerFruitExisted.fruit_images,
+                        ...newImages,
+                    ],
+                }
+            );
+
+            return httpResponse.UPDATE_FRUIT_IMAGE_SUCCESSFULLY;
+        } else {
+            const createFruit = new this.fruitModel({
+                fruit_name: createFruitDto.fruit_name,
+                quantity: createFruitDto.quantity,
+                gardens: gardens,
+                fruit_categories: isFruitCategoryExisted,
+            });
+            await createFruit.save();
+            await this.gardenerModel.updateOne(
+                { _id: gardens._id },
+                { $push: { fruits: createFruit._id } }
+            );
+
+            return httpResponse.CREATE_NEW_FRUIT_SUCCESSFULLY;
         }
     }
 
@@ -127,10 +132,9 @@ export class FruitsService {
     }
 
     async getFruitsById(fruitID: string): Promise<Response> {
-        const fruit = await this.fruitModel
-            .findById(fruitID)
-            .populate(["fruit_images", "gardens"])
-            .exec();
+        const fruit = await this.fruitRepository.findOneById(fruitID, null, {
+            populate: ["gardens", "fruit_categories", "fruit_images"],
+        });
         if (!fruit) {
             throw new HttpException(
                 `Cannot find the fruit with the ID: ${fruitID}`,
@@ -145,12 +149,8 @@ export class FruitsService {
 
     async updateFruits(
         fruitID: string,
-        updateFruitsDto: UpdateFruitsDto,
-        image?: Express.Multer.File
+        updateFruitsDto: UpdateFruitsDto
     ): Promise<Response> {
-        //TODO: update separate imgae
-        let newImage: any;
-
         const isFruitExisted = await this.fruitRepository.findOneById(fruitID);
 
         if (!isFruitExisted) {
@@ -159,46 +159,185 @@ export class FruitsService {
                 HttpStatus.NOT_FOUND
             );
         }
-        if (image) {
-            const uploadResult = await this.cloudinaryService.uploadFile(image);
-            newImage = new this.fruitImage({
-                url: uploadResult.url,
-                public_id: uploadResult.public_id,
-            });
-            await newImage.save();
 
-            updateFruitsDto.fruit_images = newImage._id;
-        }
+        const updatedFruit = await this.fruitRepository.update(fruitID, {
+            ...updateFruitsDto,
+        });
 
-        const updatedFruits = await this.fruitModel.findByIdAndUpdate(
-            fruitID,
-            updateFruitsDto
-        );
-
-        const fruitNew = await this.fruitModel.findById(updatedFruits.id);
         return {
             ...httpResponse.UPDATE_FRUIT_SUCCESSFULLY,
-            data: fruitNew,
+            data: updatedFruit,
         };
     }
 
-    //TODO: continue here
     async deleteFruits(fruitID: string): Promise<Response> {
         const fruit = await this.fruitModel.findById(fruitID);
-        const fruitImage = await this.fruitImage.findById(fruit.fruit_images);
 
-        if (fruit) {
-            await this.cloudinaryService.deleteFile(fruitImage.public_id);
-
-            await this.fruitImage.findByIdAndRemove(fruit.fruit_images);
-            await this.fruitModel.findByIdAndRemove(fruitID);
-
-            return httpResponse.DELETE_FRUIT_SUCCESSFULLY;
-        } else {
+        if (!fruit) {
             throw new HttpException(
                 `Fruit with ID ${fruitID} not found`,
                 HttpStatus.NOT_FOUND
             );
         }
+
+        if (fruit.fruit_images) {
+            if (
+                Array.isArray(fruit.fruit_images) &&
+                fruit.fruit_images.length > 0
+            ) {
+                for (const image of fruit.fruit_images) {
+                    await this.fruitImageRepository.softDelete(
+                        image._id.toString()
+                    );
+                }
+            } else {
+                return;
+            }
+        }
+
+        await this.fruitRepository.softDelete(fruit._id.toString());
+
+        await this.gardenerModel.updateOne(
+            { fruits: fruitID },
+            { $pull: { fruits: fruitID } }
+        );
+        return httpResponse.DELETE_FRUIT_SUCCESSFULLY;
+    }
+
+    async addFruitImage(
+        fruitID: string,
+        images: Express.Multer.File[]
+    ): Promise<Response> {
+        const fruit = await this.fruitRepository.findOneById(fruitID);
+
+        if (!fruit) {
+            throw new HttpException(
+                "The fruit doesn't existed",
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (!images || images.length <= 0) {
+            throw new HttpException(
+                "There are no media at all",
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        const uploadedImages = await Promise.all(
+            images.map(async (image) => {
+                try {
+                    const { url, public_id } =
+                        await this.cloudinaryService.uploadFile(image);
+                    return this.fruitImageRepository.create({
+                        url,
+                        public_id,
+                        fruit: fruit._id,
+                    });
+                } catch (error) {
+                    throw new HttpException(
+                        "Error processing images",
+                        HttpStatus.INTERNAL_SERVER_ERROR
+                    );
+                }
+            })
+        );
+
+        const updatedImageFruit = await this.fruitRepository.update(
+            fruit._id.toString(),
+            {
+                fruit_images: [...fruit.fruit_images, ...uploadedImages],
+            }
+        );
+
+        return {
+            ...httpResponse.UPDATE_FRUIT_IMAGE_SUCCESSFULLY,
+            data: updatedImageFruit,
+        };
+    }
+
+    async updateFruitImage(
+        oldImageId: string,
+        newImage: Express.Multer.File
+    ): Promise<Response> {
+        const oldImage = await this.fruitImageRepository.findOneById(
+            oldImageId
+        );
+        if (!oldImage) {
+            throw new HttpException(
+                "The image not existed",
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        const fruit = await this.fruitRepository.findOneById(oldImage.fruit);
+        if (!fruit) {
+            throw new HttpException(
+                "Associated fruit not found",
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        const { url, public_id } = await this.cloudinaryService.uploadFile(
+            newImage
+        );
+
+        const newFruitImage = await this.fruitImageRepository.create({
+            url,
+            public_id,
+            fruit: fruit._id,
+        });
+
+        const listImage = fruit.fruit_images.map((image: FruitImage) =>
+            image._id.toString() === oldImageId ? newFruitImage._id : image
+        ) as FruitImage[];
+
+        await this.fruitImageRepository.softDelete(oldImageId);
+
+        const updateFruit = await this.fruitRepository.update(
+            fruit._id.toString(),
+            {
+                fruit_images: listImage,
+            }
+        );
+
+        return {
+            ...httpResponse.UPDATE_FRUIT_IMAGE_SUCCESSFULLY,
+            data: updateFruit,
+        };
+    }
+
+    async deleteFruitImages(
+        fruitID: string,
+        imageIDs: string[]
+    ): Promise<Response> {
+        if (!imageIDs || imageIDs.length === 0) {
+            throw new HttpException(
+                "No image IDs provided",
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        const fruit = await this.fruitRepository.findOneById(fruitID);
+        if (!fruit) {
+            throw new HttpException(
+                `Fruit with ID ${fruitID} not found`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        fruit.fruit_images = fruit.fruit_images.filter(
+            (image) => !imageIDs.includes(image._id.toString())
+        );
+
+        await Promise.all(
+            imageIDs.map((id) => this.fruitImageRepository.softDelete(id))
+        );
+
+        await this.fruitRepository.update(fruitID, {
+            fruit_images: fruit.fruit_images,
+        });
+
+        return httpResponse.DELETE_FRUIT_IMAGE_SUCCESSFULLY;
     }
 }
