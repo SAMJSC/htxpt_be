@@ -37,7 +37,7 @@ import { AuthGuard } from "@nestjs/passport";
 import { Admin } from "@schemas/admin.schema";
 import { Customer } from "@schemas/customer.schema";
 import { Response } from "@shared/response/response.interface";
-import { UserDecorator } from "decorators/current-garden.decorator";
+import { UserDecorator } from "decorators/current-user.decorator";
 import { Roles } from "decorators/roles.decorator";
 import { Gardener } from "schemas/garden.schema";
 import { LoginMetadata } from "types/common.type";

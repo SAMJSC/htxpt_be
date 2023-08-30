@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { BonsaiImage } from "@schemas/bonsai_image.schema";
+import { BaseSchema } from "@shared/base.schema";
 import mongoose, { HydratedDocument } from "mongoose";
 import { Gardener } from "schemas/garden.schema";
 
@@ -9,7 +10,7 @@ export type BonsaiDocument = HydratedDocument<Bonsai>;
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
     collection: "bonsai_trees",
 })
-export class Bonsai {
+export class Bonsai extends BaseSchema {
     @Prop()
     tree_name: string;
 
@@ -21,7 +22,7 @@ export class Bonsai {
 
     @Prop({
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Gardens",
+        ref: "Gardener",
         required: true,
     })
     gardens: Gardener;
@@ -29,11 +30,11 @@ export class Bonsai {
     @Prop([
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "BonsaiImages",
+            ref: "BonsaiImage",
             required: true,
         },
     ])
-    bonsai_images: BonsaiImage;
+    bonsai_images: BonsaiImage[];
 }
 
 export const BonsaiSchema = SchemaFactory.createForClass(Bonsai);

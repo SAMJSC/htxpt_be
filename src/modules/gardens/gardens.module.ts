@@ -1,6 +1,7 @@
 import { CacheModule } from "@nestjs/cache-manager";
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
+import { Fruit, FruitSchema } from "@schemas/fruit.schema";
 import { GardensRepository } from "repository/gardens.repository";
 import {
     DeviceSession,
@@ -16,6 +17,7 @@ import { GardensService } from "./gardens.service";
         MongooseModule.forFeature([
             { name: Gardener.name, schema: GardenerSchema },
             { name: DeviceSession.name, schema: DeviceSessionSchema },
+            { name: Fruit.name, schema: FruitSchema },
         ]),
         CacheModule.register(),
     ],

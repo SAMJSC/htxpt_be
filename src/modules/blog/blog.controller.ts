@@ -17,7 +17,7 @@ import {
 } from "@nestjs/common";
 import { Admin } from "@schemas/admin.schema";
 import { Response } from "@shared/response/response.interface";
-import { UserDecorator } from "decorators/current-garden.decorator";
+import { UserDecorator } from "decorators/current-user.decorator";
 import { Roles } from "decorators/roles.decorator";
 import { PaginationOptions } from "types/common.type";
 

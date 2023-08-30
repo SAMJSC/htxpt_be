@@ -3,6 +3,7 @@ import { GardenerRegistrationDto } from "@modules/auth/dtos/garden-registration.
 import { UpdateGardenDto } from "@modules/gardens/dtos/update-gardens.dto";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
+import { Fruit } from "@schemas/fruit.schema";
 import { httpResponse } from "@shared/response";
 import { Response } from "@shared/response/response.interface";
 import { GardenerRepositoryInterface } from "interfaces/gardens-repository.interface";
@@ -18,7 +19,9 @@ export class GardensService extends BaseServiceAbstract<Gardener> {
         @Inject("GardensRepositoryInterface")
         private readonly gardenRepository: GardenerRepositoryInterface,
         @InjectModel(DeviceSession.name)
-        private readonly deviceSessionModel: Model<DeviceSession>
+        private readonly deviceSessionModel: Model<DeviceSession>,
+        @InjectModel(Fruit.name)
+        private readonly fruitModel: Model<Fruit>
     ) {
         super(gardenRepository);
     }
@@ -49,9 +52,7 @@ export class GardensService extends BaseServiceAbstract<Gardener> {
         );
         return {
             ...httpResponse.GET_ALL_GARDENERS_SUCCESSFULLY,
-            data: {
-                gardeners,
-            },
+            data: gardeners,
         };
     }
 
@@ -142,6 +143,10 @@ export class GardensService extends BaseServiceAbstract<Gardener> {
 
         await this.deviceSessionModel.deleteMany({
             garden: gardenToDelete._id,
+        });
+
+        await this.fruitModel.deleteMany({
+            gardens: gardenToDelete._id,
         });
 
         await this.gardenRepository.permanentlyDelete(

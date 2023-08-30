@@ -2,7 +2,9 @@ import { CustomersController as CustomersController } from "@modules/customers/c
 import { CustomersService as CustomersService } from "@modules/customers/customers.service";
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
+import { Gardener, GardenerSchema } from "@schemas/garden.schema";
 import { CustomerRepository } from "repository/customer.repository";
+import { GardensRepository } from "repository/gardens.repository";
 import { Customer, CustomerSchema } from "schemas/customer.schema";
 import {
     DeviceSession,
@@ -13,6 +15,7 @@ import {
     imports: [
         MongooseModule.forFeature([
             { name: Customer.name, schema: CustomerSchema },
+            { name: Gardener.name, schema: GardenerSchema },
             { name: DeviceSession.name, schema: DeviceSessionSchema },
         ]),
     ],
@@ -23,6 +26,7 @@ import {
             provide: "CustomerRepositoryInterface",
             useClass: CustomerRepository,
         },
+        { provide: "GardensRepositoryInterface", useClass: GardensRepository },
     ],
     exports: [CustomersService],
 })

@@ -39,4 +39,12 @@ export class UpdateGardenDto {
     @IsOptional()
     @IsEnum(GENDER)
     gender?: GENDER;
+
+    @IsOptional()
+    @IsString()
+    location?: GENDER;
+
+    @IsOptional()
+    @IsString()
+    image?: GENDER;
 }
