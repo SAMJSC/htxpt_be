@@ -180,4 +180,12 @@ export const httpResponse = {
         message: "Delete bonsai images successfully",
         statusCode: 200,
     },
+    UPDATE_FRUIT_IMAGE_SUCCESSFULLY: {
+        message: "Update fruit image successfully",
+        statusCode: 200,
+    },
+    DELETE_FRUIT_IMAGE_SUCCESSFULLY: {
+        message: "Delete fruit image successfully",
+        statusCode: 200,
+    },
 };

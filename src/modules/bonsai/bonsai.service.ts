@@ -137,15 +137,13 @@ export class BonsaiService {
             );
         }
 
-        await this.bonsaiModel.findByIdAndUpdate(bonsaiID, {
+        const updateBonsai = await this.bonsaiRepository.update(bonsaiID, {
             ...updateBonsaiDto,
         });
 
-        const bonsai = await this.bonsaiRepository.findOneById(bonsaiID);
-
         return {
             ...httpResponse.UPDATE_BONSAI_SUCCESSFULLY,
-            data: bonsai,
+            data: updateBonsai,
         };
     }
 
@@ -207,7 +205,7 @@ export class BonsaiService {
                     return this.bonsaiImageRepository.create({
                         url,
                         public_id,
-                        bonsai: bonsai.id,
+                        bonsai: bonsai._id,
                     });
                 } catch (error) {
                     throw new HttpException(
@@ -230,7 +228,10 @@ export class BonsaiService {
         };
     }
 
-    async updateBonsaiImage(oldImageId: string, newImage: Express.Multer.File) {
+    async updateBonsaiImage(
+        oldImageId: string,
+        newImage: Express.Multer.File
+    ): Promise<Response> {
         const listImage: any[] = [];
         const oldImage = await this.bonsaiImageRepository.findOneById(
             oldImageId
@@ -281,33 +282,10 @@ export class BonsaiService {
         };
     }
 
-    async deleteBonsaiImage(imageID: string): Promise<Response> {
-        const listImage: any[] = [];
-        const image = await this.bonsaiImageRepository.findOneById(imageID);
-        if (!image) {
-            throw new HttpException(
-                "The image not existed",
-                HttpStatus.NOT_FOUND
-            );
-        }
-        const bonsai = await this.bonsaiRepository.findOneById(image.bonsai);
-        for (const image of bonsai.bonsai_images) {
-            if (image._id.toString() === imageID) {
-                await this.bonsaiImageRepository.softDelete(
-                    image._id.toString()
-                );
-            } else {
-                listImage.push(image);
-            }
-        }
-        await this.bonsaiRepository.update(bonsai._id.toString(), {
-            bonsai_images: [...listImage],
-        });
-
-        return httpResponse.DELETE_BONSAI_IMAGE_SUCCESSFULLY;
-    }
-
-    async deleteBonsaiImages(imageIDs: string[]): Promise<Response> {
+    async deleteBonsaiImages(
+        bonsaiID: string,
+        imageIDs: string[]
+    ): Promise<Response> {
         if (!imageIDs || imageIDs.length === 0) {
             throw new HttpException(
                 "No image IDs provided",
@@ -315,48 +293,26 @@ export class BonsaiService {
             );
         }
 
-        const bonsaisToUpdate = new Map<string, Bonsai>();
+        const bonsai = await this.bonsaiRepository.findOneById(bonsaiID);
 
-        for (const imageID of imageIDs) {
-            const image = await this.bonsaiImageRepository.findOneById(imageID);
-            if (!image) {
-                throw new HttpException(
-                    `Image with ID ${imageID} not found`,
-                    HttpStatus.NOT_FOUND
-                );
-            }
-
-            const bonsai = await this.bonsaiRepository.findOneById(
-                image.bonsai
+        if (!bonsai) {
+            throw new HttpException(
+                `The bonsai with ID ${bonsaiID} not found`,
+                HttpStatus.NOT_FOUND
             );
-            if (!bonsai) continue;
-
-            if (!bonsaisToUpdate.has(bonsai._id.toString())) {
-                bonsaisToUpdate.set(bonsai._id.toString(), {
-                    ...bonsai,
-                    bonsai_images: bonsai.bonsai_images.filter(
-                        (img) => img._id.toString() !== imageID
-                    ),
-                });
-            } else {
-                const updatedBonsai = bonsaisToUpdate.get(
-                    bonsai._id.toString()
-                );
-                updatedBonsai.bonsai_images =
-                    updatedBonsai.bonsai_images.filter(
-                        (img) => img._id.toString() !== imageID
-                    );
-                bonsaisToUpdate.set(bonsai._id.toString(), updatedBonsai);
-            }
-
-            await this.bonsaiImageRepository.softDelete(imageID);
         }
 
-        for (const [bonsaiID, updatedBonsai] of bonsaisToUpdate.entries()) {
-            await this.bonsaiRepository.update(bonsaiID, {
-                bonsai_images: updatedBonsai.bonsai_images,
-            });
-        }
+        bonsai.bonsai_images = bonsai.bonsai_images.filter(
+            (image) => !imageIDs.includes(image._id.toString())
+        );
+
+        await Promise.all(
+            imageIDs.map((id) => this.bonsaiImageRepository.softDelete(id))
+        );
+
+        await this.bonsaiRepository.update(bonsaiID, {
+            bonsai_images: bonsai.bonsai_images,
+        });
 
         return httpResponse.DELETE_BONSAI_IMAGES_SUCCESSFULLY;
     }

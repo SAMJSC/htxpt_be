@@ -108,7 +108,9 @@ export class BonsaiController {
         return await this.bonsaiService.deleteBonsai(bonsaiID);
     }
 
-    @Post("/create/image/:bonsaiID")
+    @Post("/image/:bonsaiID")
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.GARDENER)
     @UseInterceptors(FilesInterceptor("bonsai_images"))
     async addBonsaiImage(
         @Param("bonsaiID") bonsaiId: string,
@@ -118,6 +120,8 @@ export class BonsaiController {
     }
 
     @Patch("/image/:imageID")
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.GARDENER)
     @UseInterceptors(FileInterceptor("bonsai_image"))
     async updateBonsaiImageWithId(
         @Param("imageID") imageID: string,
@@ -126,17 +130,13 @@ export class BonsaiController {
         return await this.bonsaiService.updateBonsaiImage(imageID, newImage);
     }
 
-    @Delete("/image/:imageID")
-    async deleteBonsaiImage(
-        @Param("imageID") imageID: string
-    ): Promise<Response> {
-        return await this.bonsaiService.deleteBonsaiImage(imageID);
-    }
-
-    @Delete("/delete/images")
+    @Delete("/images/delete/:bonsaiID")
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.GARDENER)
     async deleteBonsaiImages(
+        @Param("bonsaiID") bonsaiID: string,
         @Body("imageIDs") imageIDs: string[]
     ): Promise<Response> {
-        return await this.bonsaiService.deleteBonsaiImages(imageIDs);
+        return await this.bonsaiService.deleteBonsaiImages(bonsaiID, imageIDs);
     }
 }
