@@ -7,6 +7,7 @@ import { DeviceSession } from "@schemas/device_session.schema";
 import { httpResponse } from "@shared/response";
 import { Response } from "@shared/response/response.interface";
 import { CustomerRepositoryInterface } from "interfaces/customer-repository.interface";
+import { GardenerRepositoryInterface } from "interfaces/gardens-repository.interface";
 import mongoose, { Model } from "mongoose";
 import { Customer } from "schemas/customer.schema";
 import { Gardener } from "schemas/garden.schema";
@@ -19,7 +20,11 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
         @Inject("CustomerRepositoryInterface")
         private readonly customerRepository: CustomerRepositoryInterface,
         @InjectModel(DeviceSession.name)
-        private readonly deviceSessionModel: Model<DeviceSession>
+        private readonly deviceSessionModel: Model<DeviceSession>,
+        @Inject("GardensRepositoryInterface")
+        private readonly gardenRepository: GardenerRepositoryInterface,
+        @InjectModel(Customer.name)
+        private readonly customerModel: Model<Customer>
     ) {
         super(customerRepository);
     }
@@ -152,6 +157,98 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
 
         return {
             ...httpResponse.DELETE_CUSTOMER_SUCCESSFULLY,
+        };
+    }
+
+    async addGardenerToFavorites(
+        customerId: string,
+        gardenerId: string
+    ): Promise<Response> {
+        const customer = await this.customerRepository.findOneById(customerId);
+        if (!customer) {
+            throw new HttpException(
+                `Customer with id ${customerId} not found`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        const gardener = await this.gardenRepository.findOneById(gardenerId);
+        if (!gardener) {
+            throw new HttpException(
+                `Gardener with id ${gardenerId} not found`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (!customer.favorite_gardeners) {
+            customer.favorite_gardeners = [];
+        }
+
+        if (!customer.favorite_gardeners.includes(gardener._id.toString())) {
+            customer.favorite_gardeners.push(gardener._id.toString());
+            await this.customerRepository.update(customerId, customer);
+        }
+
+        return {
+            ...httpResponse.ADDED_TO_FAVORITES_SUCCESSFULLY,
+            data: {
+                customer,
+            },
+        };
+    }
+
+    async removeGardenerFromFavorites(
+        customerId: string,
+        gardenerId: string
+    ): Promise<Response> {
+        const customer = await this.customerRepository.findOneById(customerId);
+        if (!customer) {
+            throw new HttpException(
+                `Customer with id ${customerId} not found`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+        const gardener = await this.gardenRepository.findOneById(gardenerId);
+        if (!gardener) {
+            throw new HttpException(
+                `Gardener with id ${gardenerId} not found`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        const index = customer.favorite_gardeners.indexOf(
+            gardener._id.toString()
+        );
+
+        if (index > -1) {
+            customer.favorite_gardeners.splice(index, 1);
+            await this.customerRepository.update(customerId, customer);
+        }
+
+        return {
+            ...httpResponse.REMOVED_FROM_FAVORITES_SUCCESSFULLY,
+            data: {
+                customer,
+            },
+        };
+    }
+
+    async listFavoriteGardeners(customerId: string): Promise<Response> {
+        const customer = await this.customerModel
+            .findById(customerId)
+            .populate("favorite_gardeners");
+        if (!customer) {
+            throw new HttpException(
+                `Customer with id ${customerId} not found`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        return {
+            ...httpResponse.LIST_FAVORITES_SUCCESSFULLY,
+            data: {
+                favorite_gardeners: customer.favorite_gardeners,
+            },
         };
     }
 }

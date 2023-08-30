@@ -1,28 +1,18 @@
 import { Transform } from "class-transformer";
-import {
-    IsNotEmpty,
-    IsNumber,
-    IsOptional,
-    IsString,
-    Min,
-} from "class-validator";
-import mongoose from "mongoose";
+import { IsNumber, IsOptional, IsString, Min } from "class-validator";
 
 export class UpdateBonsaiDto {
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     readonly tree_name: string;
 
     @Transform(({ value }) => Number(value))
-    @IsNotEmpty()
+    @IsOptional()
     @IsNumber()
     @Min(0)
     readonly quantity: number;
 
     @IsOptional()
-    readonly bonsai_images: mongoose.Schema.Types.ObjectId[];
-
-    @IsNotEmpty()
     @IsString()
     readonly description: string;
 }

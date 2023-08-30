@@ -436,7 +436,7 @@ export class AuthService {
             service instanceof GardensService ||
             service instanceof CustomersService
         ) {
-            if (!("phone" in loginDto) || !loginDto.phone) {
+            if (!("email" in loginDto) || !loginDto.email) {
                 throw new HttpException(
                     `Phone number is required for ${
                         service instanceof GardensService
@@ -446,7 +446,7 @@ export class AuthService {
                     HttpStatus.BAD_REQUEST
                 );
             }
-            identifier = { phone: loginDto.phone };
+            identifier = { email: loginDto.email };
         }
 
         if (service instanceof AdminService) {

@@ -10,12 +10,13 @@ import {
     Get,
     Param,
     Patch,
+    Post,
     Query,
     UseGuards,
 } from "@nestjs/common";
 import { Customer } from "@schemas/customer.schema";
 import { Response } from "@shared/response/response.interface";
-import { UserDecorator } from "decorators/current-garden.decorator";
+import { UserDecorator } from "decorators/current-user.decorator";
 import { Roles } from "decorators/roles.decorator";
 import { PaginationOptions } from "types/common.type";
 @Controller("customers")
@@ -97,5 +98,41 @@ export class CustomersController {
     @Delete(":customerId")
     remove(@Param("customerId") customerId: string): Promise<Response> {
         return this.customersService.deleteCustomer(customerId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.CUSTOMER)
+    @Post("favorite/:gardenerID")
+    addGardenerToFavorites(
+        @Param("gardenerID") gardenerID: string,
+        @UserDecorator() user: Customer
+    ): Promise<Response> {
+        return this.customersService.addGardenerToFavorites(
+            user._id.toString(),
+            gardenerID
+        );
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.CUSTOMER)
+    @Delete("favorite/:gardenerID")
+    removeGardenerFromFavorites(
+        @Param("gardenerID") gardenerID: string,
+        @UserDecorator() user: Customer
+    ): Promise<Response> {
+        return this.customersService.removeGardenerFromFavorites(
+            user._id.toString(),
+            gardenerID
+        );
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.CUSTOMER)
+    @Get("favorites/all")
+    listFavoriteGardeners(@UserDecorator() user: Customer): Promise<Response> {
+        return this.customersService.listFavoriteGardeners(user._id.toString());
     }
 }

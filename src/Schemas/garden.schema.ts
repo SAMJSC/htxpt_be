@@ -89,6 +89,9 @@ export class Gardener extends BaseSchema {
     avatar?: string;
 
     @Prop()
+    image?: string;
+
+    @Prop()
     address?: string;
 
     @Prop()
@@ -115,7 +118,7 @@ export class Gardener extends BaseSchema {
     rating_quantity?: number;
 
     @Prop()
-    product_category?: PRODUCT_CATEGORY;
+    product_category?: PRODUCT_CATEGORY[];
 
     @Prop()
     response_rate?: number;
@@ -142,6 +145,9 @@ export class Gardener extends BaseSchema {
         },
     ])
     bonsai?: Bonsai[];
+
+    @Prop({ default: undefined })
+    location?: string;
 
     @Prop({ default: false })
     email_verified?: boolean;
@@ -174,6 +180,16 @@ export const GardenSchemaFactory = (
             const garden = await this.model.findOne(this.getFilter());
             deviceSessionModel.deleteMany({ garden: garden._id });
             return next();
+        }
+    );
+
+    gardener_schema.pre(
+        "findOneAndDelete",
+        async function (next: NextFunction) {
+            const gardener = await this.model.findOne(this.getFilter());
+            const fruitModel = mongoose.model("Fruit"); // assuming the Fruit model has been registered with this name
+            await fruitModel.deleteMany({ gardens: gardener._id });
+            next();
         }
     );
 

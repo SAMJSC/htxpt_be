@@ -117,7 +117,7 @@ export class FruitsService {
     ): Promise<Response> {
         const fruits = await this.fruitRepository.findAll(filterObject, {
             ...options,
-            populate: ["fruit_categories", "fruit_images"],
+            populate: ["gardens", "fruit_categories", "fruit_images"],
         });
 
         return {
@@ -129,7 +129,7 @@ export class FruitsService {
     async getFruitsById(fruitID: string): Promise<Response> {
         const fruit = await this.fruitModel
             .findById(fruitID)
-            .populate("fruit_images")
+            .populate(["fruit_images", "gardens"])
             .exec();
         if (!fruit) {
             throw new HttpException(
@@ -148,6 +148,7 @@ export class FruitsService {
         updateFruitsDto: UpdateFruitsDto,
         image?: Express.Multer.File
     ): Promise<Response> {
+        //TODO: update separate imgae
         let newImage: any;
 
         const isFruitExisted = await this.fruitRepository.findOneById(fruitID);
@@ -181,6 +182,7 @@ export class FruitsService {
         };
     }
 
+    //TODO: continue here
     async deleteFruits(fruitID: string): Promise<Response> {
         const fruit = await this.fruitModel.findById(fruitID);
         const fruitImage = await this.fruitImage.findById(fruit.fruit_images);

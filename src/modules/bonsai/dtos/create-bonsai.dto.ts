@@ -1,12 +1,5 @@
 import { Transform } from "class-transformer";
-import {
-    IsNotEmpty,
-    IsNumber,
-    IsOptional,
-    IsString,
-    Min,
-} from "class-validator";
-import mongoose from "mongoose";
+import { IsNotEmpty, IsNumber, IsString, Min } from "class-validator";
 
 export class CreateBonsaiDto {
     @IsNotEmpty()
@@ -18,9 +11,6 @@ export class CreateBonsaiDto {
     @IsNumber()
     @Min(0)
     readonly quantity: number;
-
-    @IsOptional()
-    readonly bonsai_images: mongoose.Schema.Types.ObjectId[];
 
     @IsNotEmpty()
     @IsString()
