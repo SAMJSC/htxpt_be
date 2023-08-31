@@ -41,7 +41,7 @@ export class FruitsService {
         gardens: Gardener,
         images?: Express.Multer.File[]
     ): Promise<Response> {
-        let newImages: any[] = [];
+        let newImages: FruitImage[] = [];
         const isFruitCategoryExisted =
             await this.fruitCategoryRepository.findOneByCondition({
                 category_name: createFruitDto.fruit_category_name,
@@ -69,7 +69,7 @@ export class FruitsService {
                         return this.fruitImageRepository.create({
                             url,
                             public_id,
-                            fruit: isGardenerFruitExisted._id,
+                            fruit: isGardenerFruitExisted,
                         });
                     } catch (error) {
                         throw new HttpException(
@@ -105,6 +105,7 @@ export class FruitsService {
                 quantity: createFruitDto.quantity,
                 gardens: gardens,
                 fruit_categories: isFruitCategoryExisted,
+                fruit_images: [...newImages],
             });
             await createFruit.save();
             await this.gardenerModel.updateOne(

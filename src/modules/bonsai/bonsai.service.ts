@@ -3,6 +3,7 @@ import { UpdateBonsaiDto } from "@modules/bonsai/dtos/update-bonsai.dto";
 import { CloudinaryService } from "@modules/cloudinary/cloudinary.service";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
+import { BonsaiImage } from "@schemas/bonsai_image.schema";
 import { Bonsai } from "@schemas/bonsai_tree.schema";
 import { Gardener } from "@schemas/garden.schema";
 import { httpResponse } from "@shared/response";
@@ -33,30 +34,32 @@ export class BonsaiService {
         images?: Express.Multer.File[]
     ): Promise<Response> {
         try {
-            let newImages: any[] = [];
-
-            if (!images || images.length <= 0) {
-                throw new HttpException(
-                    "There are no media at all",
-                    HttpStatus.BAD_REQUEST
-                );
-            }
+            let newImages: BonsaiImage[] = [];
 
             const createBonsai = await this.bonsaiModel.create({
                 ...createBonsaiDto,
                 gardens: gardens,
             });
 
-            for (const image of images) {
-                const uploadImage = await this.cloudinaryService.uploadFile(
-                    image
+            if (images || images.length > 0) {
+                newImages = await Promise.all(
+                    images.map(async (image) => {
+                        try {
+                            const { url, public_id } =
+                                await this.cloudinaryService.uploadFile(image);
+                            return this.bonsaiImageRepository.create({
+                                url,
+                                public_id,
+                                bonsai: createBonsai,
+                            });
+                        } catch (error) {
+                            throw new HttpException(
+                                "Error processing images",
+                                HttpStatus.INTERNAL_SERVER_ERROR
+                            );
+                        }
+                    })
                 );
-                const newImage = await this.bonsaiImageRepository.create({
-                    url: uploadImage.url,
-                    public_id: uploadImage.public_id,
-                    bonsai: createBonsai._id,
-                });
-                newImages = [...newImages, newImage];
             }
 
             await this.gardenerModel.updateOne(
@@ -232,7 +235,7 @@ export class BonsaiService {
         oldImageId: string,
         newImage: Express.Multer.File
     ): Promise<Response> {
-        const listImage: any[] = [];
+        const listImage: BonsaiImage[] = [];
         const oldImage = await this.bonsaiImageRepository.findOneById(
             oldImageId
         );
@@ -263,7 +266,7 @@ export class BonsaiService {
                 await this.bonsaiImageRepository.softDelete(
                     image._id.toString()
                 );
-                listImage.push(newBonsaiImage._id);
+                listImage.push(newBonsaiImage);
             } else {
                 listImage.push(image);
             }

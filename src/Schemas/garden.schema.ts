@@ -4,6 +4,7 @@ import {
     USER_ROLES,
 } from "@constants/common.constants";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { SpecialFruit } from "@schemas/special_fruit.schema";
 import { BaseSchema } from "@shared/base.schema";
 import { Exclude, Expose } from "class-transformer";
 import { Max, Min } from "class-validator";
@@ -137,6 +138,14 @@ export class Gardener extends BaseSchema {
         },
     ])
     fruits?: Fruit[];
+
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: SpecialFruit.name,
+        },
+    ])
+    special_fruits?: SpecialFruit[];
 
     @Prop([
         {

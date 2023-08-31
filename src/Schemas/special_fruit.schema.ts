@@ -18,16 +18,16 @@ export class SpecialFruit extends BaseSchema {
     quantity: number;
 
     @Prop()
-    range_price: number[];
+    price: number;
 
     @Prop()
     shape: string[];
 
     @Prop()
-    dimeter: number[];
+    dimeter: number;
 
     @Prop()
-    weight: number[];
+    weight: number;
 
     @Prop({
         type: mongoose.Schema.Types.ObjectId,

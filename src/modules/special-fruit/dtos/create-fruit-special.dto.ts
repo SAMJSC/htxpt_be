@@ -1,11 +1,4 @@
-import { Transform } from "class-transformer";
-import {
-    IsNotEmpty,
-    IsNumber,
-    IsOptional,
-    IsString,
-    Min,
-} from "class-validator";
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 import mongoose from "mongoose";
 
 export class CreateFruitSpecialDto {
@@ -13,25 +6,19 @@ export class CreateFruitSpecialDto {
     @IsString()
     readonly fruit_name: string;
 
-    @Transform(({ value }) => Number(value))
-    @IsNotEmpty()
-    @IsNumber()
-    @Min(0)
-    readonly quantity: number;
-
     @IsOptional()
     readonly fruit_images: mongoose.Schema.Types.ObjectId;
 
     @IsNotEmpty()
     @IsNotEmpty()
-    readonly range_price: number[];
+    readonly price: number;
 
     @IsNotEmpty()
-    readonly shape: string[];
+    readonly shape: string;
 
     @IsNotEmpty()
-    readonly dimeter: number[];
+    readonly dimeter: number;
 
     @IsNotEmpty()
-    readonly weight: number[];
+    readonly weight: number;
 }
