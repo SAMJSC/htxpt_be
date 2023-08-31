@@ -7,10 +7,12 @@ import {
     FruitCategorySchema,
 } from "@schemas/fruit_category.chema";
 import { FruitImage, FruitImageSchema } from "@schemas/fruit_image.schema";
+import { Gardener, GardenerSchema } from "@schemas/garden.schema";
 import {
     FruitSpecialSchema,
     SpecialFruit,
 } from "@schemas/special_fruit.schema";
+import { FruitImageRepository } from "repository/fruit-image.repository";
 import { SpecialFruitRepository } from "repository/special-fruit.repository";
 
 import { SpecialFruitService } from "./special-fruit.service";
@@ -21,6 +23,7 @@ import { SpecialFruitService } from "./special-fruit.service";
             { name: FruitCategory.name, schema: FruitCategorySchema },
             { name: SpecialFruit.name, schema: FruitSpecialSchema },
             { name: FruitImage.name, schema: FruitImageSchema },
+            { name: Gardener.name, schema: GardenerSchema },
         ]),
         CloudinaryModule,
     ],
@@ -30,6 +33,10 @@ import { SpecialFruitService } from "./special-fruit.service";
         {
             provide: "SpecialFruitRepositoryInterface",
             useClass: SpecialFruitRepository,
+        },
+        {
+            provide: "FruitImageRepositoryInterface",
+            useClass: FruitImageRepository,
         },
     ],
 })
