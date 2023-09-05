@@ -144,4 +144,48 @@ export const httpResponse = {
         message: "Remove fruit category successfully",
         statusCode: 200,
     },
+    ADDED_TO_FAVORITES_SUCCESSFULLY: {
+        message: "Add new favorite gardener into list successfully",
+        statusCode: 200,
+    },
+    REMOVED_FROM_FAVORITES_SUCCESSFULLY: {
+        message: "Remove gardener from list successfully",
+        statusCode: 200,
+    },
+    LIST_FAVORITES_SUCCESSFULLY: {
+        message: "Get all gardener successfully",
+        statusCode: 200,
+    },
+    GET_ALL_BONSAI_SUCCESSFULLY: {
+        message: "Get all bonsai successfully",
+        statusCode: 200,
+    },
+    GET_BONSAI_SUCCESSFULLY: {
+        message: "Get bonsai successfully",
+        statusCode: 200,
+    },
+    DELETE_BONSAI_SUCCESSFULLY: {
+        message: "Remove bonsai successfully",
+        statusCode: 200,
+    },
+    UPDATE_BONSAI_IMAGE_SUCCESSFULLY: {
+        message: "Update bonsai image successfully",
+        statusCode: 200,
+    },
+    DELETE_BONSAI_IMAGE_SUCCESSFULLY: {
+        message: "Delete bonsai image successfully",
+        statusCode: 200,
+    },
+    DELETE_BONSAI_IMAGES_SUCCESSFULLY: {
+        message: "Delete bonsai images successfully",
+        statusCode: 200,
+    },
+    UPDATE_FRUIT_IMAGE_SUCCESSFULLY: {
+        message: "Update fruit image successfully",
+        statusCode: 200,
+    },
+    DELETE_FRUIT_IMAGE_SUCCESSFULLY: {
+        message: "Delete fruit image successfully",
+        statusCode: 200,
+    },
 };

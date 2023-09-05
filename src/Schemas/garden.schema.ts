@@ -4,6 +4,7 @@ import {
     USER_ROLES,
 } from "@constants/common.constants";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { SpecialFruit } from "@schemas/special_fruit.schema";
 import { BaseSchema } from "@shared/base.schema";
 import { Exclude, Expose } from "class-transformer";
 import { Max, Min } from "class-validator";
@@ -89,6 +90,9 @@ export class Gardener extends BaseSchema {
     avatar?: string;
 
     @Prop()
+    image?: string;
+
+    @Prop()
     address?: string;
 
     @Prop()
@@ -115,7 +119,7 @@ export class Gardener extends BaseSchema {
     rating_quantity?: number;
 
     @Prop()
-    product_category?: PRODUCT_CATEGORY;
+    product_category?: PRODUCT_CATEGORY[];
 
     @Prop()
     response_rate?: number;
@@ -138,10 +142,21 @@ export class Gardener extends BaseSchema {
     @Prop([
         {
             type: mongoose.Schema.Types.ObjectId,
+            ref: SpecialFruit.name,
+        },
+    ])
+    special_fruits?: SpecialFruit[];
+
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
             ref: Bonsai.name,
         },
     ])
     bonsai?: Bonsai[];
+
+    @Prop({ default: undefined })
+    location?: string;
 
     @Prop({ default: false })
     email_verified?: boolean;
@@ -174,6 +189,16 @@ export const GardenSchemaFactory = (
             const garden = await this.model.findOne(this.getFilter());
             deviceSessionModel.deleteMany({ garden: garden._id });
             return next();
+        }
+    );
+
+    gardener_schema.pre(
+        "findOneAndDelete",
+        async function (next: NextFunction) {
+            const gardener = await this.model.findOne(this.getFilter());
+            const fruitModel = mongoose.model("Fruit"); // assuming the Fruit model has been registered with this name
+            await fruitModel.deleteMany({ gardens: gardener._id });
+            next();
         }
     );
 

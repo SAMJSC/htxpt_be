@@ -14,13 +14,14 @@ import {
     Post,
     Query,
     UploadedFile,
+    UploadedFiles,
     UseGuards,
     UseInterceptors,
 } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
+import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { Gardener } from "@schemas/garden.schema";
 import { Response } from "@shared/response/response.interface";
-import { UserDecorator } from "decorators/current-garden.decorator";
+import { UserDecorator } from "decorators/current-user.decorator";
 import { Roles } from "decorators/roles.decorator";
 import { Express } from "express";
 import { PaginationOptions } from "types/common.type";
@@ -32,34 +33,15 @@ export class SpecialFruitController {
     @Post("/create")
     @UseGuards(RolesGuard, JwtAuthGuard)
     @Roles(USER_ROLES.GARDENER)
-    @UseInterceptors(FileInterceptor("fruit_images"))
+    @UseInterceptors(FilesInterceptor("images"))
     async addFruitSpecial(
         @Body() createFruitSpecialDto: CreateFruitSpecialDto,
         @UserDecorator() garden: Gardener,
-        @UploadedFile() image?: Express.Multer.File
+        @UploadedFiles() image?: Express.Multer.File[]
     ): Promise<Response> {
-        const {
-            fruit_name,
-            quantity,
-            fruit_images,
-            range_price,
-            shape,
-            dimeter,
-            weight,
-        } = createFruitSpecialDto;
-
-        const parsedDto = {
-            fruit_name,
-            quantity: Number(quantity),
-            fruit_images,
-            range_price: JSON.parse(`[${range_price}]`),
-            shape: JSON.parse(`[${shape}]`),
-            dimeter: JSON.parse(`[${dimeter}]`),
-            weight: JSON.parse(`[${weight}]`),
-        };
         return await this.specialFruitService.createFruitSpecial(
-            parsedDto,
-            garden._id.toString(),
+            createFruitSpecialDto,
+            garden,
             image
         );
     }
@@ -116,16 +98,13 @@ export class SpecialFruitController {
     }
 
     @Patch("/:fruitSpecialID")
-    @UseInterceptors(FileInterceptor("image"))
     async updateFruitSpecial(
         @Param("fruitSpecialID") fruitSpecialID: string,
-        @Body() updateFruitSpecial: UpdateFruitSpecialDto,
-        @UploadedFile() image?: Express.Multer.File
+        @Body() updateFruitSpecial: UpdateFruitSpecialDto
     ): Promise<Response> {
         return await this.specialFruitService.updateFruitSpecial(
             fruitSpecialID,
-            updateFruitSpecial,
-            image
+            updateFruitSpecial
         );
     }
 
@@ -135,6 +114,42 @@ export class SpecialFruitController {
     ): Promise<Response> {
         return await this.specialFruitService.deleteFruitSpecial(
             fruitSpecialID
+        );
+    }
+
+    @Post("/image/:fruitID")
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.GARDENER)
+    @UseInterceptors(FilesInterceptor("images"))
+    async addFruitImages(
+        @Param("fruitID") fruitID: string,
+        @UploadedFiles() images?: Express.Multer.File[]
+    ): Promise<Response> {
+        return await this.specialFruitService.addFruitImage(fruitID, images);
+    }
+
+    @Patch("/image/:imageID")
+    @UseInterceptors(FileInterceptor("images"))
+    async updateFruitImageWithId(
+        @Param("imageID") imageID: string,
+        @UploadedFile() newImage: Express.Multer.File
+    ): Promise<Response> {
+        return await this.specialFruitService.updateFruitImage(
+            imageID,
+            newImage
+        );
+    }
+
+    @Delete("/images/delete/:fruitID")
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.GARDENER)
+    async deleteFruitImages(
+        @Param("fruitID") fruitID: string,
+        @Body("imageIDs") imageIDs: string[]
+    ): Promise<Response> {
+        return await this.specialFruitService.deleteFruitImages(
+            fruitID,
+            imageIDs
         );
     }
 }

@@ -72,6 +72,14 @@ export class Customer extends BaseSchema {
     @Prop([
         {
             type: mongoose.Schema.Types.ObjectId,
+            ref: "Gardener",
+        },
+    ])
+    favorite_gardeners?: string[];
+
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
             ref: "DeviceSession",
         },
     ])

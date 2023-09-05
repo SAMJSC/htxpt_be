@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsPhoneNumber, IsString } from "class-validator";
+import { IsEmail, IsNotEmpty, IsString } from "class-validator";
 
 export class GardenLoginDto {
     @IsString()
-    @IsPhoneNumber()
-    phone: string;
+    @IsEmail()
+    email: string;
 
     @IsString()
     @IsNotEmpty()
