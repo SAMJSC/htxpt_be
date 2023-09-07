@@ -36,6 +36,7 @@ import {
     ValidationPipe,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
+import { Throttle } from "@nestjs/throttler";
 import { Admin } from "@schemas/admin.schema";
 import { Customer } from "@schemas/customer.schema";
 import { Response } from "@shared/response/response.interface";
@@ -361,6 +362,7 @@ export class AuthController {
         }
     }
 
+    @Throttle({ default: { limit: 3, ttl: 60000 } })
     @Post("send-otp")
     async sendOtpToSms(@Body() sendSmsDto: SendSmsDto): Promise<Response> {
         return this.authService.sendOtp(sendSmsDto);

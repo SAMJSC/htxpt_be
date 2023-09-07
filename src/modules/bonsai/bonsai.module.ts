@@ -16,7 +16,6 @@ import { BonsaiImageRepository } from "repository/bonsai-image.repository";
             { name: Gardener.name, schema: GardenerSchema },
             { name: BonsaiImage.name, schema: BonsaiImageSchema },
         ]),
-
         CloudinaryModule,
     ],
     controllers: [BonsaiController],

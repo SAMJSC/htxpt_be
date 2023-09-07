@@ -271,7 +271,7 @@ export class AuthService {
         return session;
     }
 
-    private async checkExistence(fields: {
+    async checkExistence(fields: {
         email?: string;
         userName?: string;
         phone?: string;
