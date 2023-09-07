@@ -10,10 +10,14 @@ import { GardenLoginDto } from "@modules/auth/dtos/garden-login.dto";
 import { GardenerRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
 import { RefreshTokenDto } from "@modules/auth/dtos/refresh_token.dto";
 import { SendOtpForgotPasswordDto } from "@modules/auth/dtos/send-otp-password.dto";
+import { SendSmsDto } from "@modules/auth/dtos/send-sms.dto";
+import { VerifyOtpDto } from "@modules/auth/dtos/verify-sms-otp.dto";
 import { CustomersService } from "@modules/customers/customers.service";
 import { GardensService } from "@modules/gardens/gardens.service";
 import { RegisterEmailDto } from "@modules/mail/dtos/register-email.dto";
+import { SendVerifyOtpDto } from "@modules/mail/dtos/send-verify-otp.dto";
 import { MailService } from "@modules/mail/mail.service";
+import SmsService from "@modules/sms/sms.service";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
@@ -47,10 +51,11 @@ export class AuthService {
         private readonly customerService: CustomersService,
         @Inject(CACHE_MANAGER)
         private cacheManager: Cache,
-        private readonly mailService: MailService
+        private readonly mailService: MailService,
+        private readonly smsService: SmsService
     ) {}
 
-    private genToken(): number {
+    private generateOtp(): number {
         return Math.floor(100000 + Math.random() * 900000);
     }
 
@@ -62,11 +67,11 @@ export class AuthService {
         return this.customerService.findOneByCondition({ email });
     }
 
-    async validateGarden(email: string, password: string): Promise<Gardener> {
-        const garden = await this.gardenService.findOneByCondition({ email });
+    async validateGarden(phone: string, password: string): Promise<Gardener> {
+        const garden = await this.gardenService.findOneByCondition({ phone });
         if (!garden) {
             throw new HttpException(
-                `Garden with ${email} not exist yet`,
+                `Garden with ${phone} not exist yet`,
                 HttpStatus.NOT_FOUND
             );
         }
@@ -309,6 +314,60 @@ export class AuthService {
         }
     }
 
+    async sendOtp(sendSmsDto: SendSmsDto): Promise<Response> {
+        const email = "email" in sendSmsDto ? sendSmsDto.email : null;
+        const phone = "phone" in sendSmsDto ? sendSmsDto.phone : null;
+
+        if (phone) {
+            await this.smsService.initiatePhoneNumberVerification(
+                sendSmsDto.phone
+            );
+            return httpResponse.SEND_SMS_SUCCESSFULLY;
+        }
+
+        if (email) {
+            const otp = this.generateOtp();
+            const sendVerifyOtpDto: SendVerifyOtpDto = { email, otp };
+            await Promise.all([
+                this.mailService.sendVerifyOtp(sendVerifyOtpDto),
+                this.cacheManager.set(`otp-${email}`, Number(otp), 30000),
+            ]);
+            return httpResponse.SEND_VERIFY_VIA_MAIL_SUCCESSFULLY;
+        }
+    }
+
+    async verifyOtp(verifyOtpDto: VerifyOtpDto): Promise<Response> {
+        const { otp, phone, email } = verifyOtpDto;
+
+        if (phone) {
+            const response = await this.smsService.confirmCode(otp, phone);
+
+            if (response.status === "approved") {
+                this.cacheManager.set(`verified-${phone}`, true, 30000);
+                return httpResponse.VERIFY_SMS_SUCCESSFULLY;
+            } else {
+                throw new HttpException(
+                    "OTP verification failed",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
+        if (email) {
+            const checkOtp = await this.cacheManager.get(`otp-${email}`);
+            if (Number(checkOtp) !== Number(otp)) {
+                throw new HttpException(
+                    "The token invalid",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+            if (Number(checkOtp) === Number(otp)) {
+                this.cacheManager.set(`verified-${email}`, true, 30000);
+            }
+            return httpResponse.VERIFY_SMS_SUCCESSFULLY;
+        }
+    }
+
     async registration(
         service: GardensService | AdminService | CustomersService,
         dto:
@@ -318,69 +377,58 @@ export class AuthService {
         creationMethod: string,
         isGoogleAuth: boolean
     ): Promise<Response> {
-        const { password, confirm_password, email } = dto;
+        const { password, confirm_password, email, user_name } = dto;
 
-        const userName = "user_name" in dto ? dto.user_name : null;
         const phone = "phone" in dto ? dto.phone : null;
 
-        await this.checkExistence({ email, userName, phone });
+        await this.checkExistence({ email, userName: user_name, phone });
 
-        let hashedPassword: string;
-        if (!isGoogleAuth) {
+        let hashedPassword: string | undefined;
+        let authMethod: AUTHEN_METHODS;
+        let emailVerified = false;
+        let phoneVerified = false;
+
+        if (isGoogleAuth) {
+            authMethod = AUTHEN_METHODS.GOOGLE;
+            emailVerified = true;
+        } else {
             this.checkPasswordMatch(password, confirm_password);
             hashedPassword = await this.hashPassword(password);
-        }
+            authMethod = AUTHEN_METHODS.LOCAL;
 
-        const newToken = generateAccessJWT(
-            { email },
-            {
-                expiresIn: Number(process.env.VERIFY_EMAIL_TOKEN_IN_SEC),
+            if (phone) {
+                const isVerified = await this.cacheManager.get(
+                    `verified-${phone}`
+                );
+                if (!isVerified) {
+                    throw new HttpException(
+                        "The phone is not verified yet",
+                        HttpStatus.BAD_REQUEST
+                    );
+                }
+                phoneVerified = true;
             }
-        );
 
-        service[creationMethod]({
+            if (email) {
+                const isVerified = await this.cacheManager.get(
+                    `verified-${email}`
+                );
+                if (!isVerified) {
+                    throw new HttpException(
+                        "The email is not verified yet",
+                        HttpStatus.BAD_REQUEST
+                    );
+                }
+                emailVerified = true;
+            }
+        }
+
+        await service[creationMethod]({
             ...dto,
-            authen_method: isGoogleAuth
-                ? AUTHEN_METHODS.GOOGLE
-                : AUTHEN_METHODS.LOCAL,
-            email_verified: isGoogleAuth ? true : false,
+            authen_method: authMethod,
+            email_verified: emailVerified,
+            phone_verified: phoneVerified,
             password: hashedPassword,
-        });
-
-        if (!isGoogleAuth) {
-            const registerEmailDto: RegisterEmailDto = {
-                email: email,
-                token: newToken,
-                username: userName || email,
-                role:
-                    service instanceof CustomersService
-                        ? USER_ROLES.CUSTOMER
-                        : service instanceof GardensService
-                        ? USER_ROLES.GARDENER
-                        : USER_ROLES.ADMIN,
-            };
-
-            await this.mailService.sendRegisterMail(registerEmailDto);
-        }
-
-        return httpResponse.REGISTER_SUCCESSFULLY;
-    }
-
-    async verifyEmail(
-        service: GardensService | AdminService | CustomersService,
-        token: string
-    ): Promise<Response> {
-        const payload = (await verifyAccessJWT(token)) as any;
-        const user = await service.findOneByCondition({
-            email: payload.email,
-        });
-
-        if (!user) {
-            throw new HttpException("User not found", HttpStatus.NOT_FOUND);
-        }
-
-        await service.update(user._id.toString(), {
-            email_verified: true,
         });
 
         return httpResponse.REGISTER_SUCCESSFULLY;
@@ -425,6 +473,26 @@ export class AuthService {
         return httpResponse.EMAIL_RESENT_SUCCESSFULLY;
     }
 
+    async verifyEmail(
+        service: GardensService | AdminService | CustomersService,
+        token: string
+    ): Promise<Response> {
+        const payload = (await verifyAccessJWT(token)) as any;
+        const user = await service.findOneByCondition({
+            email: payload.email,
+        });
+
+        if (!user) {
+            throw new HttpException("User not found", HttpStatus.NOT_FOUND);
+        }
+
+        await service.update(user._id.toString(), {
+            email_verified: true,
+        });
+
+        return httpResponse.REGISTER_SUCCESSFULLY;
+    }
+
     async login(
         service: GardensService | AdminService | CustomersService,
         loginDto: GardenLoginDto | AdminLoginDto | CustomerLoginDto,
@@ -436,17 +504,33 @@ export class AuthService {
             service instanceof GardensService ||
             service instanceof CustomersService
         ) {
-            if (!("email" in loginDto) || !loginDto.email) {
-                throw new HttpException(
-                    `Phone number is required for ${
-                        service instanceof GardensService
-                            ? "gardener"
-                            : "customer"
-                    }`,
-                    HttpStatus.BAD_REQUEST
-                );
+            // if (!("phone" in loginDto) || !loginDto.phone) {
+            //     throw new HttpException(
+            //         `Phone number is required for ${
+            //             service instanceof GardensService
+            //                 ? "gardener"
+            //                 : "customer"
+            //         }`,
+            //         HttpStatus.BAD_REQUEST
+            //     );
+            // }
+            // if (!("email" in loginDto) || !loginDto.email) {
+            //     throw new HttpException(
+            //         `Email is required for ${
+            //             service instanceof GardensService
+            //                 ? "gardener"
+            //                 : "customer"
+            //         }`,
+            //         HttpStatus.BAD_REQUEST
+            //     );
+            // }
+            if ("phone" in loginDto) {
+                identifier = { phone: loginDto.phone };
             }
-            identifier = { email: loginDto.email };
+
+            if ("email" in loginDto) {
+                identifier = { email: loginDto.email };
+            }
         }
 
         if (service instanceof AdminService) {
@@ -653,7 +737,7 @@ export class AuthService {
         service: AdminService | GardensService | CustomersService,
         email: string
     ) {
-        const newToken = this.genToken();
+        const newToken = this.generateOtp();
         const userExisted = await service.findOneByCondition({
             email,
         });
@@ -672,37 +756,42 @@ export class AuthService {
         service: AdminService | GardensService | CustomersService,
         body: SendOtpForgotPasswordDto
     ): Promise<Response> {
-        const { email } = body;
-        const userExisted = await service.findOneByCondition({
-            email,
-        });
+        const { email, phone } = body;
+        const condition = email ? { email } : { phone };
+
+        const userExisted = await service.findOneByCondition(condition);
 
         if (!userExisted) {
             throw new HttpException(
-                "User doesn't existed",
+                "User doesn't exist",
                 HttpStatus.BAD_REQUEST
             );
         }
-        if (!(service instanceof AdminService)) {
-            if (!userExisted.email_verified) {
+
+        if (email) {
+            if (
+                !(service instanceof AdminService) &&
+                !userExisted.email_verified
+            ) {
                 throw new HttpException(
-                    "The email not verify yet",
+                    "The email is not verified yet",
                     HttpStatus.BAD_REQUEST
                 );
             }
+            return this.sendOtpForgotPasswordToMail(service, email);
         }
-        return this.sendOtpForgotPasswordToMail(service, email);
+
+        if (phone) {
+            await this.smsService.initiatePhoneNumberVerification(phone);
+            return httpResponse.SEND_SMS_SUCCESSFULLY;
+        }
     }
 
     async forgotPassword(
         service: AdminService | GardensService | CustomersService,
         body: ForgotPasswordDto
     ) {
-        const { email, password, otp, confirmPassword } = body;
-        const [checkOTP, user] = await Promise.all([
-            this.cacheManager.get(`forgotPassword-${email}`),
-            service.findOneByCondition({ email }),
-        ]);
+        const { email, phone, password, otp, confirmPassword } = body;
 
         if (!(password === confirmPassword)) {
             throw new HttpException(
@@ -711,26 +800,64 @@ export class AuthService {
             );
         }
 
-        if (!checkOTP || otp != checkOTP) {
-            throw new HttpException("The opt not found", HttpStatus.NOT_FOUND);
-        }
-        if (!user) {
-            throw new HttpException("User not found", HttpStatus.NOT_FOUND);
-        }
-        const comparePassword = await bcrypt.compare(user.password, password);
-        if (comparePassword) {
-            throw new HttpException(
-                "The confirm password not the same",
-                HttpStatus.BAD_REQUEST
+        if (email) {
+            const [checkOTP, user] = await Promise.all([
+                this.cacheManager.get(`forgotPassword-${email}`),
+                service.findOneByCondition({ email }),
+            ]);
+
+            if (!checkOTP || otp != checkOTP) {
+                throw new HttpException(
+                    "The OTP not found",
+                    HttpStatus.NOT_FOUND
+                );
+            }
+
+            if (!user) {
+                throw new HttpException("User not found", HttpStatus.NOT_FOUND);
+            }
+
+            const comparePassword = await bcrypt.compare(
+                password,
+                user.password
             );
+            if (comparePassword) {
+                throw new HttpException(
+                    "The new password cannot be the same as the old password",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+
+            const passwordHash = await this.hashPassword(password);
+            await Promise.all([
+                service.update(user._id.toString(), { password: passwordHash }),
+                this.cacheManager.del(`forgotPassword-${email}`),
+            ]);
+
+            return httpResponse.FORGOT_PASSWORD_SUCCESS;
         }
 
-        const passwordHash = await this.hashPassword(password);
-        await Promise.all([
-            service.update(user._id.toString(), { password: passwordHash }),
-            this.cacheManager.del(`forgotPassword-${email}`),
-        ]);
-        return httpResponse.FORGOT_PASSWORD_SUCCESS;
+        if (phone) {
+            const user = await service.findOneByCondition({ phone });
+            const verify = await this.smsService.confirmCode(otp, phone);
+
+            if (!user) {
+                throw new HttpException("User not found", HttpStatus.NOT_FOUND);
+            }
+
+            if (verify.status !== "approved") {
+                throw new HttpException(
+                    "OTP verification failed",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+
+            const passwordHash = await this.hashPassword(password);
+            await service.update(user._id.toString(), {
+                password: passwordHash,
+            });
+            return httpResponse.FORGOT_PASSWORD_SUCCESS;
+        }
     }
 
     async logout(

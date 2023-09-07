@@ -1,8 +1,8 @@
-import { IsEmail, IsNotEmpty, MinLength } from "class-validator";
+import { IsEmail, IsNotEmpty, IsOptional, MinLength } from "class-validator";
 
 export class AdminRegistrationDto {
     @IsEmail()
-    @IsNotEmpty()
+    @IsOptional()
     email: string;
 
     @IsNotEmpty()

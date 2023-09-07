@@ -9,6 +9,7 @@ import { FruitsModule } from "@modules/fruits/fruits.module";
 import { GardensModule } from "@modules/gardens/gardens.module";
 import { HealthCheckModule } from "@modules/health-check/health-check.module";
 import { MailModule } from "@modules/mail/mail.module";
+import { SmsModule } from "@modules/sms/sms.module";
 import { SpecialFruitModule } from "@modules/special-fruit/special-fruit.module";
 import { BullModule } from "@nestjs/bull";
 import { PassportModule } from "@nestjs/passport";
@@ -34,4 +35,5 @@ export const MODULES = [
     CloudinaryModule,
     HealthCheckModule,
     BlogModule,
+    SmsModule,
 ];

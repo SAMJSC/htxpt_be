@@ -1,5 +1,6 @@
 import { ForgotPasswordEmailDto } from "@modules/mail/dtos/forgot-password.dto";
 import { RegisterEmailDto } from "@modules/mail/dtos/register-email.dto";
+import { SendVerifyOtpDto } from "@modules/mail/dtos/send-verify-otp.dto";
 import { Process, Processor } from "@nestjs/bull";
 import { Logger } from "@nestjs/common";
 import { MailerService } from "@nestjs-modules/mailer";
@@ -29,7 +30,7 @@ export class MailProcessor {
             await this.mailerService.sendMail({
                 from: emailConfig.from,
                 to: data.email,
-                subject: `Xác nhận đăng ký HTX-Phat-thu`,
+                subject: `Xác nhận đăng ký HTX phat thu`,
                 template: `src/modules/mail/templates/register.template.hbs`,
                 context: context,
             });
@@ -58,7 +59,7 @@ export class MailProcessor {
             await this.mailerService.sendMail({
                 from: emailConfig.from,
                 to: data.email,
-                subject: `Xác nhận quên mật khẩu KLearnIt`,
+                subject: `Xác nhận quên mật khẩu HTX phat thu`,
                 template: `src/modules/mail/templates/forgot-password.template.hbs`,
                 context: context,
             });
@@ -68,6 +69,28 @@ export class MailProcessor {
         this.logger.log(
             `Done job: sendUpdateEmail ${data.email} email ${data.username}`
         );
+        return 1;
+    }
+
+    @Process("sendVerifyOtp")
+    async sendVerifyOtp({ data }: Job<SendVerifyOtpDto>): Promise<number> {
+        this.logger.log(`Start job: send otp user with email ${data.email}`);
+        const context = {
+            email: data.email,
+            otp: data.otp,
+        };
+        try {
+            await this.mailerService.sendMail({
+                from: emailConfig.from,
+                to: data.email,
+                subject: `Xác nhận email HTX phat thu`,
+                template: `src/modules/mail/templates/send-otp.template.hbs`,
+                context: context,
+            });
+        } catch (e) {
+            this.logger.debug(e);
+        }
+        this.logger.log(`Done job: send otp to email ${data.email}`);
         return 1;
     }
 }

@@ -30,7 +30,16 @@ export class Customer extends BaseSchema {
     @Prop()
     date_of_birth?: Date;
 
-    @Prop()
+    @Prop({
+        unique: true,
+        get: (phone: string) => {
+            if (!phone) {
+                return;
+            }
+            const phoneNumber = phone.replace(/\D/g, "").replace(/^84/, "0");
+            return phoneNumber;
+        },
+    })
     phone?: string;
 
     @Prop()

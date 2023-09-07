@@ -12,7 +12,7 @@ import {
 } from "class-validator";
 
 export class CustomerRegistrationDto {
-    @IsNotEmpty()
+    @IsOptional()
     @IsEmail()
     readonly email: string;
 
