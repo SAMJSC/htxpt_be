@@ -1,3 +1,4 @@
+import { ApiProperty } from "@nestjs/swagger";
 import {
     IsEmail,
     IsNotEmpty,
@@ -6,18 +7,19 @@ import {
     IsString,
 } from "class-validator";
 
-export class GardenLoginDto {
-    @IsString()
+export class VerifyOtpDto {
+    @ApiProperty()
     @IsPhoneNumber()
     @IsOptional()
     phone: string;
 
-    @IsString()
+    @ApiProperty()
     @IsEmail()
     @IsOptional()
     email: string;
 
+    @ApiProperty()
     @IsString()
     @IsNotEmpty()
-    password: string;
+    otp: string;
 }

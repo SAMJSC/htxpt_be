@@ -13,6 +13,7 @@ import { scrypt } from "crypto";
 import { rateLimit } from "express-rate-limit";
 import session from "express-session";
 import { HttpExceptionFilter } from "filters/bad-request.filter";
+import { CustomExceptionFilter } from "filters/exception.filter";
 import { DuplicateKeyFilter } from "filters/mongo-error.filter";
 import { QueryFailedFilter } from "filters/query-fail.filter";
 import { get, x64hash128 } from "fingerprintjs2";
@@ -22,6 +23,8 @@ import { initSwagger } from "swagger";
 import { promisify } from "util";
 
 import { AppModule } from "./app.module";
+
+//TODO: if email or phone not active yet prevent some actions
 
 async function bootstrap() {
     const logger = new Logger(bootstrap.name);
@@ -82,7 +85,8 @@ async function bootstrap() {
     app.useGlobalFilters(
         new HttpExceptionFilter(reflector),
         new QueryFailedFilter(reflector),
-        new DuplicateKeyFilter()
+        new DuplicateKeyFilter(),
+        new CustomExceptionFilter()
     );
 
     app.useGlobalPipes(

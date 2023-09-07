@@ -188,4 +188,16 @@ export const httpResponse = {
         message: "Delete fruit image successfully",
         statusCode: 200,
     },
+    SEND_SMS_SUCCESSFULLY: {
+        message: "Send sms successfully",
+        statusCode: 200,
+    },
+    VERIFY_SMS_SUCCESSFULLY: {
+        message: "Verify sms successfully",
+        statusCode: 200,
+    },
+    SEND_VERIFY_VIA_MAIL_SUCCESSFULLY: {
+        message: "Send mail successfully",
+        statusCode: 200,
+    },
 };

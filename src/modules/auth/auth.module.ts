@@ -7,6 +7,7 @@ import { FruitsModule } from "@modules/fruits/fruits.module";
 import { GardensModule } from "@modules/gardens/gardens.module";
 import { GardensService } from "@modules/gardens/gardens.service";
 import { MailModule } from "@modules/mail/mail.module";
+import { SmsModule } from "@modules/sms/sms.module";
 import { CacheModule } from "@nestjs/cache-manager";
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
@@ -43,6 +44,7 @@ import { LocalStrategy } from "strategegies/local.strategy";
         FruitsModule,
         BonsaiModule,
         PassportModule,
+        SmsModule,
     ],
     providers: [
         GardensService,

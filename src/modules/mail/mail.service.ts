@@ -1,5 +1,6 @@
 import { ForgotPasswordEmailDto } from "@modules/mail/dtos/forgot-password.dto";
 import { RegisterEmailDto } from "@modules/mail/dtos/register-email.dto";
+import { SendVerifyOtpDto } from "@modules/mail/dtos/send-verify-otp.dto";
 import { InjectQueue } from "@nestjs/bull";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { Inject, Injectable } from "@nestjs/common";
@@ -25,6 +26,12 @@ export class MailService {
     ): Promise<void> {
         await this.emailQueue.add("sendForgotPasswordMail", {
             ...forgotPasswordDto,
+        });
+    }
+
+    async sendVerifyOtp(sendVerifyOtpDto: SendVerifyOtpDto): Promise<void> {
+        await this.emailQueue.add("sendVerifyOtp", {
+            ...sendVerifyOtpDto,
         });
     }
 }

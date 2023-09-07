@@ -12,7 +12,7 @@ import {
 } from "class-validator";
 
 export class GardenerRegistrationDto {
-    @IsNotEmpty()
+    @IsOptional()
     @IsEmail()
     readonly email: string;
 
@@ -45,7 +45,7 @@ export class GardenerRegistrationDto {
     @IsDate()
     date_of_birth: Date;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsPhoneNumber()
     phone: string;
 

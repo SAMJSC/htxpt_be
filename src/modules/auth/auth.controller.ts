@@ -16,6 +16,8 @@ import { GardenerRegistrationDto } from "@modules/auth/dtos/garden-registration.
 import { RefreshTokenDto } from "@modules/auth/dtos/refresh_token.dto";
 import { ResendVerifyEmailDto } from "@modules/auth/dtos/resend-email.dto";
 import { SendOtpForgotPasswordDto } from "@modules/auth/dtos/send-otp-password.dto";
+import { SendSmsDto } from "@modules/auth/dtos/send-sms.dto";
+import { VerifyOtpDto } from "@modules/auth/dtos/verify-sms-otp.dto";
 import { CustomersService } from "@modules/customers/customers.service";
 import { GardensService } from "@modules/gardens/gardens.service";
 import {
@@ -357,5 +359,15 @@ export class AuthController {
                 user.email
             );
         }
+    }
+
+    @Post("send-otp")
+    async sendOtpToSms(@Body() sendSmsDto: SendSmsDto): Promise<Response> {
+        return this.authService.sendOtp(sendSmsDto);
+    }
+
+    @Post("verify-otp")
+    async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto): Promise<Response> {
+        return this.authService.verifyOtp(verifyOtpDto);
     }
 }
