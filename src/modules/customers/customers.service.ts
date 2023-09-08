@@ -1,16 +1,18 @@
 import { USER_ROLES } from "@constants/common.constants";
 import { CustomerRegistrationDto } from "@modules/auth/dtos/customer-registration.dto";
 import { UpdateCustomerDto } from "@modules/customers/dtos/update-customer.dto";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { DeviceSession } from "@schemas/device_session.schema";
 import { httpResponse } from "@shared/response";
 import { Response } from "@shared/response/response.interface";
+import { Cache } from "cache-manager";
+import { AdminRepositoryInterface } from "interfaces/admin-repository.interface";
 import { CustomerRepositoryInterface } from "interfaces/customer-repository.interface";
 import { GardenerRepositoryInterface } from "interfaces/gardens-repository.interface";
 import mongoose, { Model } from "mongoose";
 import { Customer } from "schemas/customer.schema";
-import { Gardener } from "schemas/garden.schema";
 import { BaseServiceAbstract } from "services/base.abstract.service";
 import { PaginationOptions } from "types/common.type";
 
@@ -19,14 +21,48 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
     constructor(
         @Inject("CustomerRepositoryInterface")
         private readonly customerRepository: CustomerRepositoryInterface,
-        @InjectModel(DeviceSession.name)
-        private readonly deviceSessionModel: Model<DeviceSession>,
         @Inject("GardensRepositoryInterface")
         private readonly gardenRepository: GardenerRepositoryInterface,
+        @Inject("AdminRepositoryInterface")
+        private readonly adminRepository: AdminRepositoryInterface,
+        @InjectModel(DeviceSession.name)
+        private readonly deviceSessionModel: Model<DeviceSession>,
         @InjectModel(Customer.name)
-        private readonly customerModel: Model<Customer>
+        private readonly customerModel: Model<Customer>,
+        @Inject(CACHE_MANAGER)
+        private cacheManager: Cache
     ) {
         super(customerRepository);
+    }
+
+    async checkExistence(fields: { email?: string; phone?: string }) {
+        const services = [
+            this.customerRepository,
+            this.adminRepository,
+            this.gardenRepository,
+        ];
+
+        const fieldNames = ["email", "user_name", "phone"];
+
+        for (const service of services) {
+            for (const fieldName of fieldNames) {
+                if (!fields[fieldName]) continue;
+
+                const existingEntity = await service.findOneByCondition({
+                    [fieldName]: fields[fieldName],
+                });
+
+                if (existingEntity) {
+                    throw new HttpException(
+                        `${
+                            fieldName.charAt(0).toUpperCase() +
+                            fieldName.slice(1)
+                        } already exists!!`,
+                        HttpStatus.CONFLICT
+                    );
+                }
+            }
+        }
     }
 
     async createCustomer(
@@ -71,26 +107,6 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
         };
     }
 
-    async getCustomerByEmail(email: string): Promise<Gardener> {
-        try {
-            const garden = await this.customerRepository.findOneByCondition({
-                email,
-            });
-            if (!garden) {
-                throw new HttpException(
-                    `The garden with email ${email} doesn't existed `,
-                    HttpStatus.NOT_FOUND
-                );
-            }
-            return garden;
-        } catch (error) {
-            throw new HttpException(
-                error.message,
-                HttpStatus.INTERNAL_SERVER_ERROR
-            );
-        }
-    }
-
     async updateCustomer(
         actionUserId: string,
         actionUserRole: USER_ROLES,
@@ -108,6 +124,32 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
             if (actionUserId !== customerId) {
                 throw new HttpException(
                     "You can not have permission",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
+        const { email, phone } = updateCustomerDto;
+
+        if (email) {
+            const isEmailVerified = await this.cacheManager.get(
+                `verified-${email}`
+            );
+            if (!isEmailVerified) {
+                throw new HttpException(
+                    "Email must be verified before updating",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
+        if (phone) {
+            const isPhoneVerified = await this.cacheManager.get(
+                `verified-${phone}`
+            );
+            if (!isPhoneVerified) {
+                throw new HttpException(
+                    "Phone number must be verified before updating",
                     HttpStatus.BAD_REQUEST
                 );
             }

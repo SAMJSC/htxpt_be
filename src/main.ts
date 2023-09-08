@@ -112,7 +112,7 @@ async function bootstrap() {
         });
     };
 
-    app.use(async (req, res, next) => {
+    app.use(async (req: any, res: any, next: any) => {
         const deviceId = await getDeviceId();
         req.deviceId = deviceId;
         next();

@@ -1,6 +1,14 @@
 import { GENDER } from "@constants/common.constants";
 import { Transform } from "class-transformer";
-import { IsDate, IsEnum, IsOptional, IsString, Min } from "class-validator";
+import {
+    IsDate,
+    IsEmail,
+    IsEnum,
+    IsOptional,
+    IsPhoneNumber,
+    IsString,
+    Min,
+} from "class-validator";
 
 export class UpdateGardenDto {
     @IsOptional()
@@ -47,4 +55,12 @@ export class UpdateGardenDto {
     @IsOptional()
     @IsString()
     image?: GENDER;
+
+    @IsOptional()
+    @IsEmail()
+    email: string;
+
+    @IsOptional()
+    @IsPhoneNumber()
+    phone: string;
 }

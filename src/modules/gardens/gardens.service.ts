@@ -1,11 +1,15 @@
 import { USER_ROLES } from "@constants/common.constants";
 import { GardenerRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
 import { UpdateGardenDto } from "@modules/gardens/dtos/update-gardens.dto";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Fruit } from "@schemas/fruit.schema";
 import { httpResponse } from "@shared/response";
 import { Response } from "@shared/response/response.interface";
+import { Cache } from "cache-manager";
+import { AdminRepositoryInterface } from "interfaces/admin-repository.interface";
+import { CustomerRepositoryInterface } from "interfaces/customer-repository.interface";
 import { GardenerRepositoryInterface } from "interfaces/gardens-repository.interface";
 import mongoose, { Model } from "mongoose";
 import { DeviceSession } from "schemas/device_session.schema";
@@ -18,12 +22,48 @@ export class GardensService extends BaseServiceAbstract<Gardener> {
     constructor(
         @Inject("GardensRepositoryInterface")
         private readonly gardenRepository: GardenerRepositoryInterface,
+        @Inject("CustomerRepositoryInterface")
+        private readonly customerRepository: CustomerRepositoryInterface,
+        @Inject("AdminRepositoryInterface")
+        private readonly adminRepository: AdminRepositoryInterface,
         @InjectModel(DeviceSession.name)
         private readonly deviceSessionModel: Model<DeviceSession>,
         @InjectModel(Fruit.name)
-        private readonly fruitModel: Model<Fruit>
+        private readonly fruitModel: Model<Fruit>,
+        @Inject(CACHE_MANAGER)
+        private cacheManager: Cache
     ) {
         super(gardenRepository);
+    }
+
+    async checkExistence(fields: { email?: string; phone?: string }) {
+        const services = [
+            this.gardenRepository,
+            this.adminRepository,
+            this.customerRepository,
+        ];
+
+        const fieldNames = ["email", "user_name", "phone"];
+
+        for (const service of services) {
+            for (const fieldName of fieldNames) {
+                if (!fields[fieldName]) continue;
+
+                const existingEntity = await service.findOneByCondition({
+                    [fieldName]: fields[fieldName],
+                });
+
+                if (existingEntity) {
+                    throw new HttpException(
+                        `${
+                            fieldName.charAt(0).toUpperCase() +
+                            fieldName.slice(1)
+                        } already exists!!`,
+                        HttpStatus.CONFLICT
+                    );
+                }
+            }
+        }
     }
 
     async getGardenById(gardenerID: string): Promise<Response> {
@@ -113,6 +153,34 @@ export class GardensService extends BaseServiceAbstract<Gardener> {
                 `Garden with id ${gardenId} not found`,
                 HttpStatus.NOT_FOUND
             );
+        }
+
+        const { email, phone } = updateGardenDto;
+
+        await this.checkExistence({ email, phone });
+
+        if (email) {
+            const isEmailVerified = await this.cacheManager.get(
+                `verified-${email}`
+            );
+            if (!isEmailVerified) {
+                throw new HttpException(
+                    "Email must be verified before updating",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
+        if (phone) {
+            const isPhoneVerified = await this.cacheManager.get(
+                `verified-${phone}`
+            );
+            if (!isPhoneVerified) {
+                throw new HttpException(
+                    "Phone number must be verified before updating",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
         }
 
         Object.assign(garden, updateGardenDto);

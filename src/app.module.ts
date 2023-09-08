@@ -1,8 +1,9 @@
 import { MODULES } from "@modules/index";
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { APP_FILTER } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
+import { ThrottlerGuard } from "@nestjs/throttler";
 import { database_config } from "configs/database.config";
 import { JwtMalformedFilter } from "filters/jwt-malformed.filter";
 import Joi from "joi";
@@ -10,8 +11,6 @@ import { LocalStrategy } from "strategegies/local.strategy";
 import { LoggerMiddleware } from "utils/logger";
 
 import { AuthController } from "./modules/auth/auth.controller";
-import { BlogController } from "./modules/blog/blog.controller";
-import { FruitCategoryController } from "./modules/fruit-category/fruit-category.controller";
 
 const modules = [...MODULES];
 
@@ -72,8 +71,12 @@ const modules = [...MODULES];
             provide: APP_FILTER,
             useClass: JwtMalformedFilter,
         },
+        {
+            provide: APP_GUARD,
+            useClass: ThrottlerGuard,
+        },
     ],
-    controllers: [AuthController, BlogController, FruitCategoryController],
+    controllers: [AuthController],
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
