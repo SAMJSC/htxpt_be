@@ -64,15 +64,10 @@ export class BlogService {
         filterObject: any,
         options: PaginationOptions
     ): Promise<Response> {
-        const gardeners = await this.blogRepository.findAll(
-            filterObject,
-            options
-        );
+        const blogs = await this.blogRepository.findAll(filterObject, options);
         return {
             ...httpResponse.GET_ALL_BLOG_SUCCESSFULLY,
-            data: {
-                gardeners,
-            },
+            data: blogs,
         };
     }
 

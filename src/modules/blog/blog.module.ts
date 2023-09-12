@@ -1,3 +1,4 @@
+import { BlogController } from "@modules/blog/blog.controller";
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { Blog, BlogSchema } from "@schemas/blog.schema";
@@ -13,6 +14,7 @@ import { BlogService } from "./blog.service";
         BlogService,
         { provide: "BlogRepositoryInterface", useClass: BlogRepository },
     ],
+    controllers: [BlogController],
     exports: [BlogService],
 })
 export class BlogModule {}
