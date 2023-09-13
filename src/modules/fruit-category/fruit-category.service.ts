@@ -18,6 +18,21 @@ export class FruitCategoryService {
         private readonly fruitCategoryRepository: FruitCategoryRepositoryInterface
     ) {}
 
+    async getFruitCategoryByID(fruitCategoryID: string): Promise<Response> {
+        const fruitCategory =
+            this.fruitCategoryRepository.findOneById(fruitCategoryID);
+        if (!fruitCategory) {
+            throw new HttpException(
+                `Cannot find the fruit category with the ID: ${fruitCategory}`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+        return {
+            ...httpResponse.GET_FRUIT_CATEGORY_BY_ID_SUCCESSFULLY,
+            data: fruitCategory,
+        };
+    }
+
     async createFruitCategory(
         createFruitCategoryDto: CreateFruitCategoryDto
     ): Promise<Response> {

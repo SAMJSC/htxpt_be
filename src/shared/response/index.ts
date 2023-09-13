@@ -200,4 +200,8 @@ export const httpResponse = {
         message: "Send mail successfully",
         statusCode: 200,
     },
+    GET_FRUIT_CATEGORY_BY_ID_SUCCESSFULLY: {
+        message: "Get fruit category successfully",
+        statusCode: 200,
+    },
 };
