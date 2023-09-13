@@ -67,7 +67,11 @@ export class GardensService extends BaseServiceAbstract<Gardener> {
     }
 
     async getGardenById(gardenerID: string): Promise<Response> {
-        const gardener = await this.gardenRepository.findOneById(gardenerID);
+        const gardener = await this.gardenRepository.findOneById(
+            gardenerID,
+            null,
+            { populate: ["fruits", "bonsai", "special_fruits"] }
+        );
         if (!gardener) {
             throw new HttpException(
                 `The gardener with id ${gardenerID} not found`,

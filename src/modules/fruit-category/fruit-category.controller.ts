@@ -76,6 +76,15 @@ export class FruitCategoryController {
         );
     }
 
+    @Get("/:fruitCategoryID")
+    async getFruitCategoryByID(
+        @Param("fruitCategoryID") fruitCategoryID: string
+    ): Promise<Response> {
+        return await this.fruitCategoryService.getFruitCategoryByID(
+            fruitCategoryID
+        );
+    }
+
     @Patch("/:fruitCategoryID")
     async updateFruitCategory(
         @Param("fruitCategoryID") fruitCategoryID: string,
