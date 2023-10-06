@@ -11,7 +11,7 @@ export type AdminDocument = HydratedDocument<Admin>;
     collection: "admins",
 })
 export class Admin extends BaseSchema {
-    @Prop({ unique: true, required: true })
+    @Prop({ unique: true, required: true, sparse: true })
     email: string;
 
     @Prop({ required: true })
