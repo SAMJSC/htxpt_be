@@ -1,4 +1,10 @@
 import { USER_ROLES } from "@constants/common.constants";
+import { AdminService } from "@modules/admin/admin.service";
+import { AdminLoginDto } from "@modules/auth/dtos/admin-login.dto";
+import { CustomerLoginDto } from "@modules/auth/dtos/customer-login.dto";
+import { GardenLoginDto } from "@modules/auth/dtos/garden-login.dto";
+import { CustomersService } from "@modules/customers/customers.service";
+import { GardensService } from "@modules/gardens/gardens.service";
 import { Admin } from "@schemas/admin.schema";
 import { Gardener } from "@schemas/garden.schema";
 export type Constructor<T, Arguments extends unknown[] = undefined[]> = new (
@@ -47,3 +53,6 @@ export interface IFile {
     originalname: string;
     size: number;
 }
+
+export type LoginService = GardensService | AdminService | CustomersService;
+export type LoginDto = GardenLoginDto | AdminLoginDto | CustomerLoginDto;

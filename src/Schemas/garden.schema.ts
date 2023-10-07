@@ -37,7 +37,7 @@ export type GardenerDocument = HydratedDocument<Gardener>;
     },
 })
 export class Gardener extends BaseSchema {
-    @Prop({ unique: true })
+    @Prop({ unique: true, sparse: true })
     email?: string;
 
     @Prop({
@@ -76,6 +76,7 @@ export class Gardener extends BaseSchema {
 
     @Prop({
         unique: true,
+        sparse: true,
         get: (phone: string) => {
             if (!phone) {
                 return;

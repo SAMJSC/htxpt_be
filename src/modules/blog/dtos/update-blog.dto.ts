@@ -7,7 +7,7 @@ export class UpdateBlogDto {
 
     @IsString()
     @IsOptional()
-    shortDescription: string;
+    short_description: string;
 
     @IsString()
     @IsOptional()

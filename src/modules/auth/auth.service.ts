@@ -1,12 +1,9 @@
 import { AUTHEN_METHODS, USER_ROLES } from "@constants/common.constants";
 import { AdminService } from "@modules/admin/admin.service";
-import { AdminLoginDto } from "@modules/auth/dtos/admin-login.dto";
 import { AdminRegistrationDto } from "@modules/auth/dtos/admin-registration.dto";
 import { ChangePasswordDto } from "@modules/auth/dtos/change-password.dto";
-import { CustomerLoginDto } from "@modules/auth/dtos/customer-login.dto";
 import { CustomerRegistrationDto } from "@modules/auth/dtos/customer-registration.dto";
 import { ForgotPasswordDto } from "@modules/auth/dtos/forgot-password.dto";
-import { GardenLoginDto } from "@modules/auth/dtos/garden-login.dto";
 import { GardenerRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
 import { RefreshTokenDto } from "@modules/auth/dtos/refresh_token.dto";
 import { SendOtpForgotPasswordDto } from "@modules/auth/dtos/send-otp-password.dto";
@@ -31,7 +28,13 @@ import crypto, { scrypt } from "crypto";
 import { Model } from "mongoose";
 import { DeviceSession } from "schemas/device_session.schema";
 import { Gardener } from "schemas/garden.schema";
-import { LoginMetadata, LoginResponseData, Session } from "type";
+import {
+    LoginDto,
+    LoginMetadata,
+    LoginResponseData,
+    LoginService,
+    Session,
+} from "type";
 import { SessionResponse } from "types/common.type";
 import { promisify } from "util";
 import {
@@ -343,7 +346,7 @@ export class AuthService {
             const response = await this.smsService.confirmCode(otp, phone);
 
             if (response.status === "approved") {
-                this.cacheManager.set(`verified-${phone}`, true, 30000);
+                this.cacheManager.set(`verified-${phone}`, true, 300000);
                 return httpResponse.VERIFY_SMS_SUCCESSFULLY;
             } else {
                 throw new HttpException(
@@ -362,7 +365,7 @@ export class AuthService {
                 );
             }
             if (Number(checkOtp) === Number(otp)) {
-                this.cacheManager.set(`verified-${email}`, true, 30000);
+                this.cacheManager.set(`verified-${email}`, true, 300000);
             }
             return httpResponse.VERIFY_SMS_SUCCESSFULLY;
         }
@@ -493,58 +496,109 @@ export class AuthService {
         return httpResponse.REGISTER_SUCCESSFULLY;
     }
 
+    // async login(
+    //     service: GardensService | AdminService | CustomersService,
+    //     loginDto: GardenLoginDto | AdminLoginDto | CustomerLoginDto,
+    //     loginData: LoginMetadata
+    // ): Promise<Response> {
+    //     let identifier: unknown;
+
+    //     if (
+    //         service instanceof GardensService ||
+    //         service instanceof CustomersService
+    //     ) {
+    //         if ("phone" in loginDto) {
+    //             identifier = { phone: loginDto.phone };
+    //         }
+
+    //         if ("email" in loginDto) {
+    //             identifier = { email: loginDto.email };
+    //         }
+    //     }
+
+    //     if (service instanceof AdminService) {
+    //         if (!("user_name" in loginDto) || !loginDto.user_name) {
+    //             throw new HttpException(
+    //                 "Username is required for admin users",
+    //                 HttpStatus.BAD_REQUEST
+    //             );
+    //         }
+    //         identifier = { user_name: loginDto.user_name };
+    //     }
+
+    //     const user = await service.findOneByCondition(identifier);
+
+    //     if (
+    //         !user ||
+    //         !(await this.checkPassword(loginDto.password, user.password))
+    //     ) {
+    //         throw new HttpException(
+    //             "Invalid credentials",
+    //             HttpStatus.BAD_REQUEST
+    //         );
+    //     }
+
+    //     const session = await this.getSession(
+    //         loginData.deviceId,
+    //         user.role,
+    //         user._id.toString(),
+    //         undefined
+    //     );
+
+    //     if (session && new Date(session.expired_at).getTime() < Date.now()) {
+    //         await this.deviceSessionModel.deleteOne(session._id);
+    //         // throw new HttpException("Session expired", HttpStatus.UNAUTHORIZED);
+    //         const { refreshToken, accessToken, loginMetaData, userData } =
+    //             await this.createSession(user, loginData, service);
+    //         return {
+    //             ...httpResponse.LOGIN_SUCCESSFULLY,
+    //             data: {
+    //                 user: {
+    //                     userData,
+    //                 },
+    //                 session: {
+    //                     accessToken,
+    //                     refreshToken,
+    //                     loginMetaData,
+    //                 },
+    //             },
+    //         };
+    //     }
+
+    //     if (!session || this.isDifferentUser(session, user)) {
+    //         const { refreshToken, accessToken, loginMetaData, userData } =
+    //             await this.createSession(user, loginData, service);
+    //         return {
+    //             ...httpResponse.LOGIN_SUCCESSFULLY,
+    //             data: {
+    //                 user: {
+    //                     userData,
+    //                 },
+    //                 session: {
+    //                     accessToken,
+    //                     refreshToken,
+    //                     loginMetaData,
+    //                 },
+    //             },
+    //         };
+    //     }
+
+    //     return {
+    //         ...httpResponse.LOGIN_SUCCESSFULLY,
+    //         data: {
+    //             session: { refreshToken: session.refresh_token },
+    //         },
+    //     };
+    // }
+
     async login(
-        service: GardensService | AdminService | CustomersService,
-        loginDto: GardenLoginDto | AdminLoginDto | CustomerLoginDto,
+        service: LoginService,
+        loginDto: LoginDto,
         loginData: LoginMetadata
     ): Promise<Response> {
-        let identifier: unknown;
-
-        if (
-            service instanceof GardensService ||
-            service instanceof CustomersService
-        ) {
-            // if (!("phone" in loginDto) || !loginDto.phone) {
-            //     throw new HttpException(
-            //         `Phone number is required for ${
-            //             service instanceof GardensService
-            //                 ? "gardener"
-            //                 : "customer"
-            //         }`,
-            //         HttpStatus.BAD_REQUEST
-            //     );
-            // }
-            // if (!("email" in loginDto) || !loginDto.email) {
-            //     throw new HttpException(
-            //         `Email is required for ${
-            //             service instanceof GardensService
-            //                 ? "gardener"
-            //                 : "customer"
-            //         }`,
-            //         HttpStatus.BAD_REQUEST
-            //     );
-            // }
-            if ("phone" in loginDto) {
-                identifier = { phone: loginDto.phone };
-            }
-
-            if ("email" in loginDto) {
-                identifier = { email: loginDto.email };
-            }
-        }
-
-        if (service instanceof AdminService) {
-            if (!("user_name" in loginDto) || !loginDto.user_name) {
-                throw new HttpException(
-                    "Username is required for admin users",
-                    HttpStatus.BAD_REQUEST
-                );
-            }
-            identifier = { user_name: loginDto.user_name };
-        }
+        const identifier = this.getIdentifier(service, loginDto);
 
         const user = await service.findOneByCondition(identifier);
-
         if (
             !user ||
             !(await this.checkPassword(loginDto.password, user.password))
@@ -558,31 +612,15 @@ export class AuthService {
         const session = await this.getSession(
             loginData.deviceId,
             user.role,
-            user._id.toString(),
-            undefined
+            user._id.toString()
         );
 
-        if (session && new Date(session.expired_at).getTime() < Date.now()) {
-            await this.deviceSessionModel.deleteOne(session._id);
-            throw new HttpException("Session expired", HttpStatus.UNAUTHORIZED);
-        }
-
-        if (!session || this.isDifferentUser(session, user)) {
-            const { refreshToken, accessToken, loginMetaData, userData } =
-                await this.createSession(user, loginData, service);
-            return {
-                ...httpResponse.LOGIN_SUCCESSFULLY,
-                data: {
-                    user: {
-                        userData,
-                    },
-                    session: {
-                        accessToken,
-                        refreshToken,
-                        loginMetaData,
-                    },
-                },
-            };
+        if (
+            !session ||
+            this.isExpired(session) ||
+            this.isDifferentUser(session, user)
+        ) {
+            return this.createAndReturnNewSession(user, loginData, service);
         }
 
         return {
@@ -591,6 +629,50 @@ export class AuthService {
                 session: { refreshToken: session.refresh_token },
             },
         };
+    }
+
+    private getIdentifier(
+        service: LoginService,
+        loginDto: LoginDto
+    ): Record<string, unknown> {
+        if (service instanceof AdminService) {
+            if ("user_name" in loginDto && loginDto.user_name) {
+                return { user_name: loginDto.user_name };
+            } else {
+                throw new HttpException(
+                    "Username is required for admin users",
+                    HttpStatus.BAD_REQUEST
+                );
+            }
+        }
+
+        if ("phone" in loginDto) return { phone: loginDto.phone };
+        if ("email" in loginDto) return { email: loginDto.email };
+
+        throw new HttpException(
+            "Invalid login information",
+            HttpStatus.BAD_REQUEST
+        );
+    }
+
+    private async createAndReturnNewSession(
+        user: any,
+        loginData: LoginMetadata,
+        service: LoginService
+    ): Promise<Response> {
+        const { refreshToken, accessToken, loginMetaData, userData } =
+            await this.createSession(user, loginData, service);
+        return {
+            ...httpResponse.LOGIN_SUCCESSFULLY,
+            data: {
+                user: { userData },
+                session: { accessToken, refreshToken, loginMetaData },
+            },
+        };
+    }
+
+    private isExpired(session: any): boolean {
+        return new Date(session.expired_at).getTime() < Date.now();
     }
 
     async loginByGoogle(
