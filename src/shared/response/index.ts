@@ -204,4 +204,16 @@ export const httpResponse = {
         message: "Get fruit category successfully",
         statusCode: 200,
     },
+    CREATE_NEW_AVATAR_SUCCESSFULLY: {
+        message: "Create new avatar successfully",
+        statusCode: 201,
+    },
+    UPDATE_AVATAR_SUCCESSFULLY: {
+        message: "Update avatar successfully",
+        statusCode: 200,
+    },
+    AVATAR_DELETED_SUCCESSFULLY: {
+        message: "Delete avatar successfully",
+        statusCode: 200,
+    },
 };

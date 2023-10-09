@@ -12,18 +12,21 @@ import {
     Patch,
     Post,
     Query,
+    UploadedFile,
     UseGuards,
+    UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { Customer } from "@schemas/customer.schema";
 import { Response } from "@shared/response/response.interface";
 import { UserDecorator } from "decorators/current-user.decorator";
 import { Roles } from "decorators/roles.decorator";
+import { Express } from "express";
 import { PaginationOptions } from "types/common.type";
 @Controller("customers")
 export class CustomersController {
     constructor(private readonly customersService: CustomersService) {}
 
-    @UseGuards(JwtAuthGuard)
     @UseGuards(JwtAuthGuard)
     @Get(":customerID")
     async getCustomerByID(
@@ -35,6 +38,8 @@ export class CustomersController {
         return customer;
     }
 
+    @UseGuards(RolesGuard)
+    @Roles(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN)
     @Get()
     findAll(@Query() query: any): Promise<Response> {
         const filterObject = {};
@@ -75,7 +80,6 @@ export class CustomersController {
         return this.customersService.getAllCustomer(filterObject, options);
     }
 
-    @UseGuards(JwtAuthGuard)
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(USER_ROLES.CUSTOMER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN)
     @Patch(":customerId")
@@ -92,7 +96,6 @@ export class CustomersController {
         );
     }
 
-    @UseGuards(JwtAuthGuard)
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN)
     @Delete(":customerId")
@@ -100,7 +103,6 @@ export class CustomersController {
         return this.customersService.deleteCustomer(customerId);
     }
 
-    @UseGuards(JwtAuthGuard)
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(USER_ROLES.CUSTOMER)
     @Post("favorite/:gardenerID")
@@ -114,7 +116,6 @@ export class CustomersController {
         );
     }
 
-    @UseGuards(JwtAuthGuard)
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(USER_ROLES.CUSTOMER)
     @Delete("favorite/:gardenerID")
@@ -128,11 +129,28 @@ export class CustomersController {
         );
     }
 
-    @UseGuards(JwtAuthGuard)
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(USER_ROLES.CUSTOMER)
     @Get("favorites/all")
     listFavoriteGardeners(@UserDecorator() user: Customer): Promise<Response> {
         return this.customersService.listFavoriteGardeners(user._id.toString());
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.CUSTOMER)
+    @Post("upload/avatar")
+    @UseInterceptors(FileInterceptor("avatar"))
+    uploadAvatar(
+        @UploadedFile() image: Express.Multer.File,
+        @UserDecorator() user: Customer
+    ): Promise<Response> {
+        return this.customersService.handleAvatar(user._id.toString(), image);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.CUSTOMER)
+    @Delete("delete/avatar")
+    deleteAvatar(@UserDecorator() user: Customer): Promise<Response> {
+        return this.customersService.deleteAvatar(user._id.toString());
     }
 }

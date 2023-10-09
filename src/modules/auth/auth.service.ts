@@ -97,18 +97,18 @@ export class AuthService {
         return garden;
     }
 
-    isDifferentUser(session: Session, garden: Admin | Gardener) {
+    isDifferentUser(session: Session, user: Admin | Gardener | Customer) {
         const userRoles = ["gardener", "admin", "super_admin"];
 
         for (const role of userRoles) {
             if (session[role]) {
-                return session[role]._id.toString() !== garden._id.toString();
+                return session[role]._id.toString() !== user._id.toString();
             }
         }
     }
 
     async generateResponseLoginData(
-        user: Admin | Gardener
+        user: Admin | Gardener | Customer
     ): Promise<LoginResponseData> {
         const userData = {
             ...(user as any).toObject(),
@@ -496,101 +496,6 @@ export class AuthService {
         return httpResponse.REGISTER_SUCCESSFULLY;
     }
 
-    // async login(
-    //     service: GardensService | AdminService | CustomersService,
-    //     loginDto: GardenLoginDto | AdminLoginDto | CustomerLoginDto,
-    //     loginData: LoginMetadata
-    // ): Promise<Response> {
-    //     let identifier: unknown;
-
-    //     if (
-    //         service instanceof GardensService ||
-    //         service instanceof CustomersService
-    //     ) {
-    //         if ("phone" in loginDto) {
-    //             identifier = { phone: loginDto.phone };
-    //         }
-
-    //         if ("email" in loginDto) {
-    //             identifier = { email: loginDto.email };
-    //         }
-    //     }
-
-    //     if (service instanceof AdminService) {
-    //         if (!("user_name" in loginDto) || !loginDto.user_name) {
-    //             throw new HttpException(
-    //                 "Username is required for admin users",
-    //                 HttpStatus.BAD_REQUEST
-    //             );
-    //         }
-    //         identifier = { user_name: loginDto.user_name };
-    //     }
-
-    //     const user = await service.findOneByCondition(identifier);
-
-    //     if (
-    //         !user ||
-    //         !(await this.checkPassword(loginDto.password, user.password))
-    //     ) {
-    //         throw new HttpException(
-    //             "Invalid credentials",
-    //             HttpStatus.BAD_REQUEST
-    //         );
-    //     }
-
-    //     const session = await this.getSession(
-    //         loginData.deviceId,
-    //         user.role,
-    //         user._id.toString(),
-    //         undefined
-    //     );
-
-    //     if (session && new Date(session.expired_at).getTime() < Date.now()) {
-    //         await this.deviceSessionModel.deleteOne(session._id);
-    //         // throw new HttpException("Session expired", HttpStatus.UNAUTHORIZED);
-    //         const { refreshToken, accessToken, loginMetaData, userData } =
-    //             await this.createSession(user, loginData, service);
-    //         return {
-    //             ...httpResponse.LOGIN_SUCCESSFULLY,
-    //             data: {
-    //                 user: {
-    //                     userData,
-    //                 },
-    //                 session: {
-    //                     accessToken,
-    //                     refreshToken,
-    //                     loginMetaData,
-    //                 },
-    //             },
-    //         };
-    //     }
-
-    //     if (!session || this.isDifferentUser(session, user)) {
-    //         const { refreshToken, accessToken, loginMetaData, userData } =
-    //             await this.createSession(user, loginData, service);
-    //         return {
-    //             ...httpResponse.LOGIN_SUCCESSFULLY,
-    //             data: {
-    //                 user: {
-    //                     userData,
-    //                 },
-    //                 session: {
-    //                     accessToken,
-    //                     refreshToken,
-    //                     loginMetaData,
-    //                 },
-    //             },
-    //         };
-    //     }
-
-    //     return {
-    //         ...httpResponse.LOGIN_SUCCESSFULLY,
-    //         data: {
-    //             session: { refreshToken: session.refresh_token },
-    //         },
-    //     };
-    // }
-
     async login(
         service: LoginService,
         loginDto: LoginDto,
@@ -656,17 +561,19 @@ export class AuthService {
     }
 
     private async createAndReturnNewSession(
-        user: any,
+        user: Admin | Gardener | Customer,
         loginData: LoginMetadata,
         service: LoginService
     ): Promise<Response> {
-        const { refreshToken, accessToken, loginMetaData, userData } =
-            await this.createSession(user, loginData, service);
+        const { refreshToken, accessToken } = await this.createSession(
+            user,
+            loginData,
+            service
+        );
         return {
             ...httpResponse.LOGIN_SUCCESSFULLY,
             data: {
-                user: { userData },
-                session: { accessToken, refreshToken, loginMetaData },
+                session: { accessToken, refreshToken },
             },
         };
     }

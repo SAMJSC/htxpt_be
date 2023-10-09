@@ -25,9 +25,9 @@ import { PaginationOptions } from "types/common.type";
 export class BlogController {
     constructor(private readonly blogService: BlogService) {}
 
-    @Post("/create")
     @UseGuards(RolesGuard, JwtAuthGuard)
     @Roles(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN)
+    @Post("/create")
     async createBlog(
         @Body() createBlogDto: CreateBlogDto,
         @UserDecorator() user: Admin
@@ -79,6 +79,8 @@ export class BlogController {
         return this.blogService.getAllBlogs(filterObject, options);
     }
 
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN)
     @Patch("/:blogId")
     async editBlog(
         @Param("blogId") blogId: string,
@@ -92,11 +94,6 @@ export class BlogController {
     async findBlog(@Param("blogId") blogId: string): Promise<Response> {
         return await this.blogService.findBlog(blogId);
     }
-
-    // @Get()
-    // async getAllBlogs(): Promise<Response> {
-    //     return await this.blogService.getAllBlogs();
-    // }
 
     @Get()
     getAllBlogs(@Query() query: any): Promise<Response> {
@@ -138,6 +135,8 @@ export class BlogController {
         return this.blogService.getAllBlogs(filterObject, options);
     }
 
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN)
     @Delete("/:blogId")
     async deleteBlog(@Param("blogId") blogId: string): Promise<Response> {
         return await this.blogService.deleteBlog(blogId);

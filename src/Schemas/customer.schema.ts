@@ -43,7 +43,13 @@ export class Customer extends BaseSchema {
     })
     phone?: string;
 
-    @Prop()
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "CustomerAvatar",
+            required: false,
+        },
+    ])
     avatar?: string;
 
     @Prop()

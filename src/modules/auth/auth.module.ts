@@ -2,6 +2,8 @@ import { AdminModule } from "@modules/admin/admin.module";
 import { AdminService } from "@modules/admin/admin.service";
 import { AuthService } from "@modules/auth/auth.service";
 import { BonsaiModule } from "@modules/bonsai/bonsai.module";
+import { CloudinaryModule } from "@modules/cloudinary/cloudinary.module";
+import { CustomersModule } from "@modules/customers/customers.module";
 import { CustomersService } from "@modules/customers/customers.service";
 import { FruitsModule } from "@modules/fruits/fruits.module";
 import { GardensModule } from "@modules/gardens/gardens.module";
@@ -40,11 +42,13 @@ import { LocalStrategy } from "strategegies/local.strategy";
         ]),
         CacheModule.register(),
         GardensModule,
+        CustomersModule,
         AdminModule,
         FruitsModule,
         BonsaiModule,
         PassportModule,
         SmsModule,
+        CloudinaryModule,
     ],
     providers: [
         GardensService,

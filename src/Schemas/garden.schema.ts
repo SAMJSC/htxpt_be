@@ -87,7 +87,13 @@ export class Gardener extends BaseSchema {
     })
     phone?: string;
 
-    @Prop()
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "GardenerAvatar",
+            required: false,
+        },
+    ])
     avatar?: string;
 
     @Prop()
