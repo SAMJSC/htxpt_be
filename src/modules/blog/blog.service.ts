@@ -57,7 +57,10 @@ export class BlogService {
             throw new HttpException("Blog not found", HttpStatus.NOT_FOUND);
         }
 
-        return httpResponse.FIND_BLOG_RESPONSE;
+        return {
+            ...httpResponse.FIND_BLOG_RESPONSE,
+            data: blog,
+        };
     }
 
     async getAllBlogs(

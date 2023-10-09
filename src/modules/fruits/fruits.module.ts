@@ -1,6 +1,7 @@
 import { CloudinaryModule } from "@modules/cloudinary/cloudinary.module";
 import { FruitsController } from "@modules/fruits/fruits.controller";
 import { FruitsService } from "@modules/fruits/fruits.service";
+import { HttpModule } from "@nestjs/axios";
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { Fruit, FruitSchema } from "@schemas/fruit.schema";
@@ -28,6 +29,7 @@ import { FruitImageRepository } from "repository/fruit-image.repository";
             { name: Gardener.name, schema: GardenerSchema },
         ]),
         CloudinaryModule,
+        HttpModule,
     ],
     controllers: [FruitsController],
     exports: [FruitsService],

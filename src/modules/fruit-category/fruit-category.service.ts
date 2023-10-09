@@ -19,8 +19,10 @@ export class FruitCategoryService {
     ) {}
 
     async getFruitCategoryByID(fruitCategoryID: string): Promise<Response> {
-        const fruitCategory =
-            this.fruitCategoryRepository.findOneById(fruitCategoryID);
+        const fruitCategory = await this.fruitCategoryRepository.findOneById(
+            fruitCategoryID
+        );
+
         if (!fruitCategory) {
             throw new HttpException(
                 `Cannot find the fruit category with the ID: ${fruitCategory}`,
