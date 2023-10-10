@@ -1,5 +1,6 @@
 import { USER_ROLES } from "@constants/common.constants";
 import { CustomerRegistrationDto } from "@modules/auth/dtos/customer-registration.dto";
+import { CloudinaryService } from "@modules/cloudinary/cloudinary.service";
 import { UpdateCustomerDto } from "@modules/customers/dtos/update-customer.dto";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
@@ -8,7 +9,9 @@ import { DeviceSession } from "@schemas/device_session.schema";
 import { httpResponse } from "@shared/response";
 import { Response } from "@shared/response/response.interface";
 import { Cache } from "cache-manager";
+import { Express } from "express";
 import { AdminRepositoryInterface } from "interfaces/admin-repository.interface";
+import { CustomerAvatarRepositoryInterface } from "interfaces/customer-avatar.repository";
 import { CustomerRepositoryInterface } from "interfaces/customer-repository.interface";
 import { GardenerRepositoryInterface } from "interfaces/gardens-repository.interface";
 import mongoose, { Model } from "mongoose";
@@ -25,12 +28,15 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
         private readonly gardenRepository: GardenerRepositoryInterface,
         @Inject("AdminRepositoryInterface")
         private readonly adminRepository: AdminRepositoryInterface,
+        @Inject("CustomerAvatarRepositoryInterface")
+        private readonly customerAvatarRepository: CustomerAvatarRepositoryInterface,
         @InjectModel(DeviceSession.name)
         private readonly deviceSessionModel: Model<DeviceSession>,
         @InjectModel(Customer.name)
         private readonly customerModel: Model<Customer>,
         @Inject(CACHE_MANAGER)
-        private cacheManager: Cache
+        private cacheManager: Cache,
+        private cloudinaryService: CloudinaryService
     ) {
         super(customerRepository);
     }
@@ -292,5 +298,78 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
                 favorite_gardeners: customer.favorite_gardeners,
             },
         };
+    }
+
+    async handleAvatar(
+        userId: string,
+        image: Express.Multer.File
+    ): Promise<Response> {
+        try {
+            const customer = await this.customerRepository.findOneById(userId);
+
+            if (!customer) {
+                throw new HttpException(
+                    `Customer with ID ${userId} not found`,
+                    HttpStatus.NOT_FOUND
+                );
+            }
+
+            const { url, public_id } = await this.cloudinaryService.uploadFile(
+                image
+            );
+
+            if (customer.avatar) {
+                await this.customerAvatarRepository.update(customer.avatar, {
+                    url,
+                    public_id,
+                    customer: customer._id.toString(),
+                });
+                return { ...httpResponse.UPDATE_AVATAR_SUCCESSFULLY };
+            } else {
+                const newAvatar = await this.customerAvatarRepository.create({
+                    url,
+                    public_id,
+                    customer,
+                });
+                await this.customerRepository.update(customer._id.toString(), {
+                    avatar: newAvatar._id.toString(),
+                });
+                return { ...httpResponse.CREATE_NEW_AVATAR_SUCCESSFULLY };
+            }
+        } catch (error) {
+            throw new HttpException(
+                "Failed to handle avatar.",
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    async deleteAvatar(userId: string): Promise<Response> {
+        try {
+            const customer = await this.customerRepository.findOneById(userId);
+            if (!customer) {
+                throw new HttpException(
+                    `Customer with ID ${userId} not found`,
+                    HttpStatus.NOT_FOUND
+                );
+            }
+
+            if (customer.avatar) {
+                await this.customerRepository.update(customer._id.toString(), {
+                    avatar: null,
+                });
+                return { ...httpResponse.AVATAR_DELETED_SUCCESSFULLY };
+            } else {
+                throw new HttpException(
+                    `No avatar found for gardener with ID ${userId}.`,
+                    HttpStatus.NOT_FOUND
+                );
+            }
+        } catch (error) {
+            throw new HttpException(
+                "Failed to delete avatar.",
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
     }
 }

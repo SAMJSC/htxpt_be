@@ -10,15 +10,20 @@ import {
     Get,
     Param,
     Patch,
+    Post,
     Query,
+    UploadedFile,
     UseGuards,
+    UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { Admin } from "@schemas/admin.schema";
 import { Customer } from "@schemas/customer.schema";
 import { Gardener } from "@schemas/garden.schema";
 import { Response } from "@shared/response/response.interface";
 import { UserDecorator } from "decorators/current-user.decorator";
 import { Roles } from "decorators/roles.decorator";
+import { Express } from "express";
 import { PaginationOptions } from "types/common.type";
 
 @Controller("gardeners")
@@ -98,5 +103,27 @@ export class GardensController {
     @Delete(":gardenerId")
     remove(@Param("gardenerId") gardenerId: string): Promise<Response> {
         return this.gardensService.deleteGarden(gardenerId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.GARDENER)
+    @Post("upload/avatar")
+    @UseInterceptors(FileInterceptor("avatar"))
+    uploadAvatar(
+        @UploadedFile() image: Express.Multer.File,
+        @UserDecorator() user: Gardener | Customer | Admin
+    ): Promise<Response> {
+        return this.gardensService.handleAvatar(user._id.toString(), image);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.GARDENER)
+    @Delete("delete/avatar")
+    deleteAvatar(
+        @UserDecorator() user: Gardener | Customer | Admin
+    ): Promise<Response> {
+        return this.gardensService.deleteAvatar(user._id.toString());
     }
 }

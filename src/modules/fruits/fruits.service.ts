@@ -26,7 +26,6 @@ import { Model } from "mongoose";
 import { firstValueFrom } from "rxjs";
 import { PaginationOptions } from "types/common.type";
 
-//TODO: check images upload logic, create table to save the invalid image
 @Injectable()
 export class FruitsService {
     private readonly logger = new Logger(FruitsService.name);
@@ -105,128 +104,6 @@ export class FruitsService {
             });
         }
     }
-
-    // async createFruit(
-    //     createFruitDto: CreateFruitsDto,
-    //     gardens: Gardener,
-    //     images?: Express.Multer.File[]
-    // ): Promise<Response> {
-    //     let newImages: any[] = [];
-    //     const isFruitCategoryExisted =
-    //         await this.fruitCategoryRepository.findOneByCondition({
-    //             category_name: createFruitDto.fruit_category_name,
-    //         });
-
-    //     if (!isFruitCategoryExisted) {
-    //         throw new HttpException(
-    //             "This fruit category doesn't existed yet",
-    //             HttpStatus.BAD_REQUEST
-    //         );
-    //     }
-
-    //     const isGardenerFruitExisted =
-    //         await this.fruitRepository.findOneByCondition({
-    //             gardens: gardens,
-    //             fruit_categories: isFruitCategoryExisted._id,
-    //         });
-
-    //     if (images || images.length > 0) {
-    //         newImages = await Promise.all(
-    //             images.map(async (image) => {
-    //                 let specificErrorMessage = null;
-    //                 try {
-    //                     const { url, public_id } =
-    //                         await this.cloudinaryService.uploadFile(image);
-    //                     const validationResult = await this.checkImage([url]);
-
-    //                     if (
-    //                         validationResult.status &&
-    //                         validationResult.status === "offline"
-    //                     ) {
-    //                         console.log("hể");
-
-    //                         return this.fruitImageRepository.create({
-    //                             url: url,
-    //                             public_id,
-    //                             fruit: isGardenerFruitExisted,
-    //                         });
-    //                     } else if (
-    //                         validationResult.result &&
-    //                         validationResult.result[0] !== 1
-    //                     ) {
-    //                         specificErrorMessage = "Image failed validation";
-    //                         return;
-    //                     }
-
-    //                     return this.fruitImageRepository.create({
-    //                         url: validationResult.image_urls[0],
-    //                         public_id,
-    //                         fruit: isGardenerFruitExisted,
-    //                     });
-    //                 } catch (error) {
-    //                     if (
-    //                         error instanceof HttpException &&
-    //                         error.getResponse() === "Ngrok server is not live"
-    //                     ) {
-    //                         throw error;
-    //                     } else if (specificErrorMessage) {
-    //                         throw new HttpException(
-    //                             specificErrorMessage,
-    //                             HttpStatus.BAD_REQUEST
-    //                         );
-    //                     } else {
-    //                         throw new HttpException(
-    //                             "Error processing images",
-    //                             HttpStatus.INTERNAL_SERVER_ERROR
-    //                         );
-    //                     }
-    //                 }
-    //             })
-    //         );
-
-    //         if (newImages.includes(undefined)) {
-    //             throw new HttpException(
-    //                 "Some images failed validation",
-    //                 HttpStatus.BAD_REQUEST
-    //             );
-    //         }
-    //     }
-
-    //     if (isGardenerFruitExisted) {
-    //         await this.fruitModel.findByIdAndUpdate(
-    //             isGardenerFruitExisted._id,
-    //             {
-    //                 fruit_name: createFruitDto.fruit_name,
-    //                 gardens: gardens,
-    //                 quantity:
-    //                     isGardenerFruitExisted.quantity +
-    //                     createFruitDto.quantity,
-    //                 fruit_categories: isGardenerFruitExisted.fruit_categories,
-    //                 fruit_images: [
-    //                     ...isGardenerFruitExisted.fruit_images,
-    //                     ...newImages.filter((img) => img !== undefined),
-    //                 ],
-    //             }
-    //         );
-
-    //         return httpResponse.UPDATE_FRUIT_IMAGE_SUCCESSFULLY;
-    //     } else {
-    //         const createFruit = new this.fruitModel({
-    //             fruit_name: createFruitDto.fruit_name,
-    //             quantity: createFruitDto.quantity,
-    //             gardens: gardens,
-    //             fruit_categories: isFruitCategoryExisted,
-    //             fruit_images: [...newImages],
-    //         });
-    //         await createFruit.save();
-    //         await this.gardenerModel.updateOne(
-    //             { _id: gardens._id },
-    //             { $push: { fruits: createFruit._id } }
-    //         );
-
-    //         return httpResponse.CREATE_NEW_FRUIT_SUCCESSFULLY;
-    //     }
-    // }
 
     async createFruit(
         createFruitDto: CreateFruitsDto,
