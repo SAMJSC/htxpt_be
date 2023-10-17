@@ -212,14 +212,22 @@ export class FruitsService {
 
     async updateFruits(
         fruitID: string,
+        userID: string,
         updateFruitsDto: UpdateFruitsDto
     ): Promise<Response> {
-        const isFruitExisted = await this.fruitRepository.findOneById(fruitID);
+        const fruit = await this.fruitRepository.findOneById(fruitID);
 
-        if (!isFruitExisted) {
+        if (!fruit) {
             throw new HttpException(
                 `Can not find the fruit with this id ${fruitID}`,
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (fruit._id.toString() !== userID) {
+            throw new HttpException(
+                "You don't have permission",
+                HttpStatus.FORBIDDEN
             );
         }
 
@@ -233,13 +241,20 @@ export class FruitsService {
         };
     }
 
-    async deleteFruits(fruitID: string): Promise<Response> {
+    async deleteFruits(fruitID: string, userID: string): Promise<Response> {
         const fruit = await this.fruitModel.findById(fruitID);
 
         if (!fruit) {
             throw new HttpException(
                 `Fruit with ID ${fruitID} not found`,
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (fruit._id.toString() !== userID) {
+            throw new HttpException(
+                "You don't have permission",
+                HttpStatus.FORBIDDEN
             );
         }
 
@@ -269,6 +284,7 @@ export class FruitsService {
 
     async addFruitImage(
         fruitID: string,
+        userID: string,
         images: Express.Multer.File[]
     ): Promise<Response> {
         const fruit = await this.fruitRepository.findOneById(fruitID);
@@ -277,6 +293,13 @@ export class FruitsService {
             throw new HttpException(
                 "The fruit doesn't existed",
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (fruit._id.toString() !== userID) {
+            throw new HttpException(
+                "You don't have permission",
+                HttpStatus.FORBIDDEN
             );
         }
 
@@ -321,6 +344,7 @@ export class FruitsService {
 
     async updateFruitImage(
         oldImageId: string,
+        userID: string,
         newImage: Express.Multer.File
     ): Promise<Response> {
         const oldImage = await this.fruitImageRepository.findOneById(
@@ -338,6 +362,13 @@ export class FruitsService {
             throw new HttpException(
                 "Associated fruit not found",
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (fruit._id.toString() !== userID) {
+            throw new HttpException(
+                "You don't have permission",
+                HttpStatus.FORBIDDEN
             );
         }
 
@@ -372,6 +403,7 @@ export class FruitsService {
 
     async deleteFruitImages(
         fruitID: string,
+        userID: string,
         imageIDs: string[]
     ): Promise<Response> {
         if (!imageIDs || imageIDs.length === 0) {
@@ -386,6 +418,13 @@ export class FruitsService {
             throw new HttpException(
                 `Fruit with ID ${fruitID} not found`,
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (fruit._id.toString() !== userID) {
+            throw new HttpException(
+                "You don't have permission",
+                HttpStatus.FORBIDDEN
             );
         }
 

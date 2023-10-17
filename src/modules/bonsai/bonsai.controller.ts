@@ -95,17 +95,32 @@ export class BonsaiController {
         return await this.bonsaiService.getBonsaiById(bonsaiID);
     }
 
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.GARDENER)
     @Patch("/:bonsaiID")
     async updateBonsai(
         @Param("bonsaiID") bonsaiID: string,
-        @Body() updateBonsai: UpdateBonsaiDto
+        @Body() updateBonsai: UpdateBonsaiDto,
+        @UserDecorator() user: Gardener
     ) {
-        return await this.bonsaiService.updateBonsai(bonsaiID, updateBonsai);
+        return await this.bonsaiService.updateBonsai(
+            bonsaiID,
+            updateBonsai,
+            user._id.toString()
+        );
     }
 
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.GARDENER)
     @Delete("/:bonsaiID")
-    async deleteBonsai(@Param("bonsaiID") bonsaiID: string) {
-        return await this.bonsaiService.deleteBonsai(bonsaiID);
+    async deleteBonsai(
+        @Param("bonsaiID") bonsaiID: string,
+        @UserDecorator() user: Gardener
+    ) {
+        return await this.bonsaiService.deleteBonsai(
+            bonsaiID,
+            user._id.toString()
+        );
     }
 
     @Post("/image/:bonsaiID")
@@ -114,9 +129,14 @@ export class BonsaiController {
     @UseInterceptors(FilesInterceptor("bonsai_images"))
     async addBonsaiImage(
         @Param("bonsaiID") bonsaiId: string,
+        @UserDecorator() user: Gardener,
         @UploadedFiles() images?: Express.Multer.File[]
     ): Promise<Response> {
-        return await this.bonsaiService.addBonsaiImage(bonsaiId, images);
+        return await this.bonsaiService.addBonsaiImage(
+            bonsaiId,
+            user._id.toString(),
+            images
+        );
     }
 
     @Patch("/image/:imageID")
@@ -125,9 +145,14 @@ export class BonsaiController {
     @UseInterceptors(FileInterceptor("bonsai_image"))
     async updateBonsaiImageWithId(
         @Param("imageID") imageID: string,
+        @UserDecorator() user: Gardener,
         @UploadedFile() newImage: Express.Multer.File
     ): Promise<Response> {
-        return await this.bonsaiService.updateBonsaiImage(imageID, newImage);
+        return await this.bonsaiService.updateBonsaiImage(
+            imageID,
+            user._id.toString(),
+            newImage
+        );
     }
 
     @Delete("/images/delete/:bonsaiID")
@@ -135,8 +160,13 @@ export class BonsaiController {
     @Roles(USER_ROLES.GARDENER)
     async deleteBonsaiImages(
         @Param("bonsaiID") bonsaiID: string,
+        @UserDecorator() user: Gardener,
         @Body("imageIDs") imageIDs: string[]
     ): Promise<Response> {
-        return await this.bonsaiService.deleteBonsaiImages(bonsaiID, imageIDs);
+        return await this.bonsaiService.deleteBonsaiImages(
+            bonsaiID,
+            user._id.toString(),
+            imageIDs
+        );
     }
 }

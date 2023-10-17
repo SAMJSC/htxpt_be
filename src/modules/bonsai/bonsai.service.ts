@@ -127,7 +127,8 @@ export class BonsaiService {
 
     async updateBonsai(
         bonsaiID: string,
-        updateBonsaiDto: UpdateBonsaiDto
+        updateBonsaiDto: UpdateBonsaiDto,
+        userID: string
     ): Promise<Response> {
         const isBonsaiExisted = await this.bonsaiRepository.findOneById(
             bonsaiID
@@ -137,6 +138,13 @@ export class BonsaiService {
             throw new HttpException(
                 `Can not find the fruit with this id ${bonsaiID}`,
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (isBonsaiExisted.gardens._id.toString() !== userID) {
+            throw new HttpException(
+                "You don't have permission",
+                HttpStatus.FORBIDDEN
             );
         }
 
@@ -150,7 +158,7 @@ export class BonsaiService {
         };
     }
 
-    async deleteBonsai(bonsaiID: string): Promise<Response> {
+    async deleteBonsai(bonsaiID: string, userId: string): Promise<Response> {
         const bonsai = await this.bonsaiRepository.findOneById(bonsaiID);
 
         if (!bonsai) {
@@ -159,6 +167,14 @@ export class BonsaiService {
                 HttpStatus.NOT_FOUND
             );
         }
+
+        if (bonsai.gardens._id.toString() !== userId) {
+            throw new HttpException(
+                "You don't have permission",
+                HttpStatus.FORBIDDEN
+            );
+        }
+
         if (bonsai.bonsai_images) {
             if (
                 Array.isArray(bonsai.bonsai_images) &&
@@ -184,12 +200,23 @@ export class BonsaiService {
         return httpResponse.DELETE_BONSAI_SUCCESSFULLY;
     }
 
-    async addBonsaiImage(bonsaiId: string, images: Express.Multer.File[]) {
+    async addBonsaiImage(
+        bonsaiId: string,
+        userID: string,
+        images: Express.Multer.File[]
+    ) {
         const bonsai = await this.bonsaiRepository.findOneById(bonsaiId);
         if (!bonsai) {
             throw new HttpException(
                 "Can not find the bonsai",
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (bonsai.gardens._id.toString() !== userID) {
+            throw new HttpException(
+                "You don't have permission",
+                HttpStatus.FORBIDDEN
             );
         }
 
@@ -233,6 +260,7 @@ export class BonsaiService {
 
     async updateBonsaiImage(
         oldImageId: string,
+        userID: string,
         newImage: Express.Multer.File
     ): Promise<Response> {
         const listImage: BonsaiImage[] = [];
@@ -253,6 +281,14 @@ export class BonsaiService {
                 HttpStatus.NOT_FOUND
             );
         }
+
+        if (bonsai.gardens._id.toString() !== userID) {
+            throw new HttpException(
+                "You don't have permission",
+                HttpStatus.FORBIDDEN
+            );
+        }
+
         const { url, public_id } = await this.cloudinaryService.uploadFile(
             newImage
         );
@@ -287,6 +323,7 @@ export class BonsaiService {
 
     async deleteBonsaiImages(
         bonsaiID: string,
+        userID: string,
         imageIDs: string[]
     ): Promise<Response> {
         if (!imageIDs || imageIDs.length === 0) {
@@ -302,6 +339,13 @@ export class BonsaiService {
             throw new HttpException(
                 `The bonsai with ID ${bonsaiID} not found`,
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (bonsai.gardens._id.toString() !== userID) {
+            throw new HttpException(
+                "You don't have permission",
+                HttpStatus.FORBIDDEN
             );
         }
 

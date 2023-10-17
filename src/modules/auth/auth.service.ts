@@ -7,12 +7,9 @@ import { ForgotPasswordDto } from "@modules/auth/dtos/forgot-password.dto";
 import { GardenerRegistrationDto } from "@modules/auth/dtos/garden-registration.dto";
 import { RefreshTokenDto } from "@modules/auth/dtos/refresh_token.dto";
 import { SendOtpForgotPasswordDto } from "@modules/auth/dtos/send-otp-password.dto";
-import { SendSmsDto } from "@modules/auth/dtos/send-sms.dto";
-import { VerifyOtpDto } from "@modules/auth/dtos/verify-sms-otp.dto";
 import { CustomersService } from "@modules/customers/customers.service";
 import { GardensService } from "@modules/gardens/gardens.service";
 import { RegisterEmailDto } from "@modules/mail/dtos/register-email.dto";
-import { SendVerifyOtpDto } from "@modules/mail/dtos/send-verify-otp.dto";
 import { MailService } from "@modules/mail/mail.service";
 import SmsService from "@modules/sms/sms.service";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
@@ -317,59 +314,60 @@ export class AuthService {
         }
     }
 
-    async sendOtp(sendSmsDto: SendSmsDto): Promise<Response> {
-        const email = "email" in sendSmsDto ? sendSmsDto.email : null;
-        const phone = "phone" in sendSmsDto ? sendSmsDto.phone : null;
+    //send otp to mail or phone
+    // async sendOtp(sendSmsDto: SendSmsDto): Promise<Response> {
+    //     const email = "email" in sendSmsDto ? sendSmsDto.email : null;
+    //     const phone = "phone" in sendSmsDto ? sendSmsDto.phone : null;
 
-        if (phone) {
-            await this.smsService.initiatePhoneNumberVerification(
-                sendSmsDto.phone
-            );
-            return httpResponse.SEND_SMS_SUCCESSFULLY;
-        }
+    //     if (phone) {
+    //         await this.smsService.initiatePhoneNumberVerification(
+    //             sendSmsDto.phone
+    //         );
+    //         return httpResponse.SEND_SMS_SUCCESSFULLY;
+    //     }
 
-        if (email) {
-            const otp = this.generateOtp();
-            const sendVerifyOtpDto: SendVerifyOtpDto = { email, otp };
-            await Promise.all([
-                this.mailService.sendVerifyOtp(sendVerifyOtpDto),
-                this.cacheManager.set(`otp-${email}`, Number(otp), 30000),
-            ]);
-            return httpResponse.SEND_VERIFY_VIA_MAIL_SUCCESSFULLY;
-        }
-    }
+    //     if (email) {
+    //         const otp = this.generateOtp();
+    //         const sendVerifyOtpDto: SendVerifyOtpDto = { email, otp };
+    //         await Promise.all([
+    //             this.mailService.sendVerifyOtp(sendVerifyOtpDto),
+    //             this.cacheManager.set(`otp-${email}`, Number(otp), 30000),
+    //         ]);
+    //         return httpResponse.SEND_VERIFY_VIA_MAIL_SUCCESSFULLY;
+    //     }
+    // }
 
-    async verifyOtp(verifyOtpDto: VerifyOtpDto): Promise<Response> {
-        const { otp, phone, email } = verifyOtpDto;
+    // async verifyOtp(verifyOtpDto: VerifyOtpDto): Promise<Response> {
+    //     const { otp, phone, email } = verifyOtpDto;
 
-        if (phone) {
-            const response = await this.smsService.confirmCode(otp, phone);
+    //     if (phone) {
+    //         const response = await this.smsService.confirmCode(otp, phone);
 
-            if (response.status === "approved") {
-                this.cacheManager.set(`verified-${phone}`, true, 300000);
-                return httpResponse.VERIFY_SMS_SUCCESSFULLY;
-            } else {
-                throw new HttpException(
-                    "OTP verification failed",
-                    HttpStatus.BAD_REQUEST
-                );
-            }
-        }
+    //         if (response.status === "approved") {
+    //             this.cacheManager.set(`verified-${phone}`, true, 300000);
+    //             return httpResponse.VERIFY_SMS_SUCCESSFULLY;
+    //         } else {
+    //             throw new HttpException(
+    //                 "OTP verification failed",
+    //                 HttpStatus.BAD_REQUEST
+    //             );
+    //         }
+    //     }
 
-        if (email) {
-            const checkOtp = await this.cacheManager.get(`otp-${email}`);
-            if (Number(checkOtp) !== Number(otp)) {
-                throw new HttpException(
-                    "The token invalid",
-                    HttpStatus.BAD_REQUEST
-                );
-            }
-            if (Number(checkOtp) === Number(otp)) {
-                this.cacheManager.set(`verified-${email}`, true, 300000);
-            }
-            return httpResponse.VERIFY_SMS_SUCCESSFULLY;
-        }
-    }
+    //     if (email) {
+    //         const checkOtp = await this.cacheManager.get(`otp-${email}`);
+    //         if (Number(checkOtp) !== Number(otp)) {
+    //             throw new HttpException(
+    //                 "The token invalid",
+    //                 HttpStatus.BAD_REQUEST
+    //             );
+    //         }
+    //         if (Number(checkOtp) === Number(otp)) {
+    //             this.cacheManager.set(`verified-${email}`, true, 300000);
+    //         }
+    //         return httpResponse.VERIFY_SMS_SUCCESSFULLY;
+    //     }
+    // }
 
     async registration(
         service: GardensService | AdminService | CustomersService,
@@ -400,28 +398,28 @@ export class AuthService {
             authMethod = AUTHEN_METHODS.LOCAL;
 
             if (phone) {
-                const isVerified = await this.cacheManager.get(
-                    `verified-${phone}`
-                );
-                if (!isVerified) {
-                    throw new HttpException(
-                        "The phone is not verified yet",
-                        HttpStatus.BAD_REQUEST
-                    );
-                }
+                // const isVerified = await this.cacheManager.get(
+                //     `verified-${phone}`
+                // );
+                // if (!isVerified) {
+                //     throw new HttpException(
+                //         "The phone is not verified yet",
+                //         HttpStatus.BAD_REQUEST
+                //     );
+                // }
                 phoneVerified = true;
             }
 
             if (email) {
-                const isVerified = await this.cacheManager.get(
-                    `verified-${email}`
-                );
-                if (!isVerified) {
-                    throw new HttpException(
-                        "The email is not verified yet",
-                        HttpStatus.BAD_REQUEST
-                    );
-                }
+                // const isVerified = await this.cacheManager.get(
+                //     `verified-${email}`
+                // );
+                // if (!isVerified) {
+                //     throw new HttpException(
+                //         "The email is not verified yet",
+                //         HttpStatus.BAD_REQUEST
+                //     );
+                // }
                 emailVerified = true;
             }
         }
