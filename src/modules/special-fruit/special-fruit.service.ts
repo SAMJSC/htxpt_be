@@ -112,16 +112,24 @@ export class SpecialFruitService {
 
     async updateFruitSpecial(
         fruitSpecialID: string,
+        userID: string,
         updateFruitSpecialDto: UpdateFruitSpecialDto
     ): Promise<Response> {
-        const isFruitExisted = await this.fruitSpecialRepository.findOneById(
+        const fruit = await this.fruitSpecialRepository.findOneById(
             fruitSpecialID
         );
 
-        if (!isFruitExisted) {
+        if (!fruit) {
             throw new HttpException(
                 `Can not find the fruit with this id ${fruitSpecialID}`,
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (fruit.gardens._id.toString() !== userID) {
+            throw new HttpException(
+                `Forbidden to update`,
+                HttpStatus.FORBIDDEN
             );
         }
 
@@ -136,7 +144,10 @@ export class SpecialFruitService {
         };
     }
 
-    async deleteFruitSpecial(fruitSpecialID: string): Promise<Response> {
+    async deleteFruitSpecial(
+        fruitSpecialID: string,
+        userID: string
+    ): Promise<Response> {
         const fruit = await this.fruitSpecialRepository.findOneById(
             fruitSpecialID
         );
@@ -145,6 +156,13 @@ export class SpecialFruitService {
             throw new HttpException(
                 `Fruit with id ${fruitSpecialID} doesn't existed`,
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (fruit.gardens._id.toString() !== userID) {
+            throw new HttpException(
+                `Forbidden to update`,
+                HttpStatus.FORBIDDEN
             );
         }
 
@@ -176,6 +194,7 @@ export class SpecialFruitService {
 
     async addFruitImage(
         fruitID: string,
+        userID: string,
         images: Express.Multer.File[]
     ): Promise<Response> {
         const fruit = await this.fruitSpecialRepository.findOneById(fruitID);
@@ -184,6 +203,13 @@ export class SpecialFruitService {
             throw new HttpException(
                 "The fruit doesn't existed",
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (fruit.gardens._id.toString() !== userID) {
+            throw new HttpException(
+                `Forbidden to update`,
+                HttpStatus.FORBIDDEN
             );
         }
 
@@ -228,6 +254,7 @@ export class SpecialFruitService {
 
     async updateFruitImage(
         oldImageId: string,
+        userID: string,
         newImage: Express.Multer.File
     ): Promise<Response> {
         const oldImage = await this.fruitImageRepository.findOneById(
@@ -243,10 +270,18 @@ export class SpecialFruitService {
         const fruit = await this.fruitSpecialRepository.findOneById(
             oldImage.fruit
         );
+
         if (!fruit) {
             throw new HttpException(
                 "Associated fruit not found",
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (fruit.gardens._id.toString() !== userID) {
+            throw new HttpException(
+                `Forbidden to update`,
+                HttpStatus.FORBIDDEN
             );
         }
 
@@ -281,6 +316,7 @@ export class SpecialFruitService {
 
     async deleteFruitImages(
         fruitID: string,
+        userID: string,
         imageIDs: string[]
     ): Promise<Response> {
         if (!imageIDs || imageIDs.length === 0) {
@@ -295,6 +331,13 @@ export class SpecialFruitService {
             throw new HttpException(
                 `Fruit with ID ${fruitID} not found`,
                 HttpStatus.NOT_FOUND
+            );
+        }
+
+        if (fruit.gardens._id.toString() !== userID) {
+            throw new HttpException(
+                `Forbidden to update`,
+                HttpStatus.FORBIDDEN
             );
         }
 

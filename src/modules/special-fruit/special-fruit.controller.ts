@@ -97,45 +97,62 @@ export class SpecialFruitController {
         );
     }
 
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.GARDENER)
     @Patch("/:fruitSpecialID")
     async updateFruitSpecial(
         @Param("fruitSpecialID") fruitSpecialID: string,
+        @UserDecorator() user: Gardener,
         @Body() updateFruitSpecial: UpdateFruitSpecialDto
     ): Promise<Response> {
         return await this.specialFruitService.updateFruitSpecial(
             fruitSpecialID,
+            user._id.toString(),
             updateFruitSpecial
         );
     }
 
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.GARDENER)
     @Delete("/:fruitSpecialID")
     async deleteFruitSpecial(
-        @Param("fruitSpecialID") fruitSpecialID: string
+        @Param("fruitSpecialID") fruitSpecialID: string,
+        @UserDecorator() user: Gardener
     ): Promise<Response> {
         return await this.specialFruitService.deleteFruitSpecial(
-            fruitSpecialID
+            fruitSpecialID,
+            user._id.toString()
         );
     }
 
-    @Post("/image/:fruitID")
     @UseGuards(RolesGuard, JwtAuthGuard)
     @Roles(USER_ROLES.GARDENER)
+    @Post("/image/:fruitID")
     @UseInterceptors(FilesInterceptor("images"))
     async addFruitImages(
         @Param("fruitID") fruitID: string,
+        @UserDecorator() user: Gardener,
         @UploadedFiles() images?: Express.Multer.File[]
     ): Promise<Response> {
-        return await this.specialFruitService.addFruitImage(fruitID, images);
+        return await this.specialFruitService.addFruitImage(
+            fruitID,
+            user._id.toString(),
+            images
+        );
     }
 
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.GARDENER)
     @Patch("/image/:imageID")
     @UseInterceptors(FileInterceptor("images"))
     async updateFruitImageWithId(
         @Param("imageID") imageID: string,
+        @UserDecorator() user: Gardener,
         @UploadedFile() newImage: Express.Multer.File
     ): Promise<Response> {
         return await this.specialFruitService.updateFruitImage(
             imageID,
+            user._id.toString(),
             newImage
         );
     }
@@ -145,10 +162,12 @@ export class SpecialFruitController {
     @Roles(USER_ROLES.GARDENER)
     async deleteFruitImages(
         @Param("fruitID") fruitID: string,
+        @UserDecorator() user: Gardener,
         @Body("imageIDs") imageIDs: string[]
     ): Promise<Response> {
         return await this.specialFruitService.deleteFruitImages(
             fruitID,
+            user._id.toString(),
             imageIDs
         );
     }

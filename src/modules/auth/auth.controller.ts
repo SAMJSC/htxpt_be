@@ -16,8 +16,6 @@ import { GardenerRegistrationDto } from "@modules/auth/dtos/garden-registration.
 import { RefreshTokenDto } from "@modules/auth/dtos/refresh_token.dto";
 import { ResendVerifyEmailDto } from "@modules/auth/dtos/resend-email.dto";
 import { SendOtpForgotPasswordDto } from "@modules/auth/dtos/send-otp-password.dto";
-import { SendSmsDto } from "@modules/auth/dtos/send-sms.dto";
-import { VerifyOtpDto } from "@modules/auth/dtos/verify-sms-otp.dto";
 import { CustomersService } from "@modules/customers/customers.service";
 import { GardensService } from "@modules/gardens/gardens.service";
 import {
@@ -36,7 +34,6 @@ import {
     ValidationPipe,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
-import { Throttle } from "@nestjs/throttler";
 import { Admin } from "@schemas/admin.schema";
 import { Customer } from "@schemas/customer.schema";
 import { Response } from "@shared/response/response.interface";
@@ -122,6 +119,8 @@ export class AuthController {
         );
     }
 
+    @UseGuards(RolesGuard, JwtAuthGuard)
+    @Roles(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN)
     @Post("gardens/register")
     @HttpCode(HttpStatus.CREATED)
     async gardenRegistration(
@@ -135,7 +134,6 @@ export class AuthController {
         );
     }
 
-    @UseGuards(JwtAuthGuard)
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(USER_ROLES.SUPER_ADMIN)
     @Post("admin/register")
@@ -362,14 +360,15 @@ export class AuthController {
         }
     }
 
-    @Throttle({ default: { limit: 3, ttl: 60000 } })
-    @Post("send-otp")
-    async sendOtpToSms(@Body() sendSmsDto: SendSmsDto): Promise<Response> {
-        return this.authService.sendOtp(sendSmsDto);
-    }
+    //Send otp to verify email and phone number
+    // @Throttle({ default: { limit: 3, ttl: 60000 } })
+    // @Post("send-otp")
+    // async sendOtpToSms(@Body() sendSmsDto: SendSmsDto): Promise<Response> {
+    //     return this.authService.sendOtp(sendSmsDto);
+    // }
 
-    @Post("verify-otp")
-    async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto): Promise<Response> {
-        return this.authService.verifyOtp(verifyOtpDto);
-    }
+    // @Post("verify-otp")
+    // async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto): Promise<Response> {
+    //     return this.authService.verifyOtp(verifyOtpDto);
+    // }
 }
