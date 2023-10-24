@@ -127,7 +127,7 @@ export class SpecialFruitController {
 
     @UseGuards(RolesGuard, JwtAuthGuard)
     @Roles(USER_ROLES.GARDENER)
-    @Post("/image/:fruitID")
+    @Post("/image")
     @UseInterceptors(FilesInterceptor("images"))
     async addFruitImages(
         @Param("fruitID") fruitID: string,

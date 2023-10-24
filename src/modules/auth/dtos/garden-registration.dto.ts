@@ -8,6 +8,7 @@ import {
     IsOptional,
     IsPhoneNumber,
     IsString,
+    Matches,
     Min,
 } from "class-validator";
 
@@ -18,6 +19,9 @@ export class GardenerRegistrationDto {
 
     @IsOptional()
     @IsString()
+    @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
+        message: "Password is too weak",
+    })
     readonly password: string;
 
     @IsNotEmpty()

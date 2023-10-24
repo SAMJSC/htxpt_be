@@ -707,9 +707,10 @@ export class AuthService {
 
     async getCurrentUser(
         service: AdminService | GardensService | CustomersService,
-        email: string
+        userID: string
     ): Promise<Response> {
-        const user = await service.findOneByCondition({ email });
+        const user = await service.findOneByCondition({ _id: userID });
+
         if (!user) {
             throw new HttpException("Not found", HttpStatus.NOT_FOUND);
         }

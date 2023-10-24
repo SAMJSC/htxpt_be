@@ -296,7 +296,7 @@ export class FruitsService {
             );
         }
 
-        if (fruit._id.toString() !== userID) {
+        if (fruit.gardens._id.toString() !== userID) {
             throw new HttpException(
                 "You don't have permission",
                 HttpStatus.FORBIDDEN
