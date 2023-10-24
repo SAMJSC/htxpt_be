@@ -338,24 +338,24 @@ export class AuthController {
 
     @Get("/profile")
     async getCurrentUserInfo(
-        @UserDecorator() user: Gardener
+        @UserDecorator() user: Gardener | Customer | Admin
     ): Promise<Response> {
         if (user.role === USER_ROLES.CUSTOMER) {
             return this.authService.getCurrentUser(
                 this.customerService,
-                user.email
+                user._id.toString()
             );
         }
         if (user.role === USER_ROLES.GARDENER) {
             return this.authService.getCurrentUser(
                 this.gardenService,
-                user.email
+                user._id.toString()
             );
         }
         if (user.role === USER_ROLES.ADMIN || USER_ROLES.SUPER_ADMIN) {
             return this.authService.getCurrentUser(
                 this.adminService,
-                user.email
+                user._id.toString()
             );
         }
     }

@@ -123,7 +123,7 @@ export class BonsaiController {
         );
     }
 
-    @Post("/image/:bonsaiID")
+    @Post("/image")
     @UseGuards(RolesGuard, JwtAuthGuard)
     @Roles(USER_ROLES.GARDENER)
     @UseInterceptors(FilesInterceptor("bonsai_images"))
