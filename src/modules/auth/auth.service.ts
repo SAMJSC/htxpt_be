@@ -524,14 +524,10 @@ export class AuthService {
             this.isDifferentUser(session, user)
         ) {
             return this.createAndReturnNewSession(user, loginData, service);
+        } else {
+            await this.deviceSessionModel.deleteOne(session._id);
+            return this.createAndReturnNewSession(user, loginData, service);
         }
-
-        return {
-            ...httpResponse.LOGIN_SUCCESSFULLY,
-            data: {
-                session: { refreshToken: session.refresh_token },
-            },
-        };
     }
 
     private getIdentifier(
@@ -879,12 +875,7 @@ export class AuthService {
             this.deviceSessionModel.deleteOne(session._id),
         ]);
 
-        return {
-            ...httpResponse.LOGOUT_SUCCESSFULLY,
-            data: {
-                session,
-            },
-        };
+        return httpResponse.LOGOUT_SUCCESSFULLY;
     }
 
     getKeyCache(gardenID: string, deviceId: string): string {
