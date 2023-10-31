@@ -30,8 +30,6 @@ import { PaginationOptions } from "types/common.type";
 export class GardensController {
     constructor(private readonly gardensService: GardensService) {}
 
-    @UseGuards(JwtAuthGuard)
-    @UseGuards(JwtAuthGuard)
     @Get(":gardenerID")
     async getGardenByID(
         @Param("gardenerID") gardenerID: string
