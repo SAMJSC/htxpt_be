@@ -79,8 +79,8 @@ export class SpecialFruitController {
         }
 
         const options: PaginationOptions = {
-            limit: Number(query.limit) || 10,
-            skip: Number(query.skip) || 0,
+            limit: Number(query.limit) || 99999,
+            offset: Number(query.offset) || 0,
         };
         return await this.specialFruitService.getAllFruitSpecial(
             filterObject,

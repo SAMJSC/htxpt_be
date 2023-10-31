@@ -67,7 +67,10 @@ export class BlogService {
         filterObject: any,
         options: PaginationOptions
     ): Promise<Response> {
-        const blogs = await this.blogRepository.findAll(filterObject, options);
+        const blogs = await this.blogRepository.findAllWithSubFields(
+            filterObject,
+            options
+        );
         return {
             ...httpResponse.GET_ALL_BLOG_SUCCESSFULLY,
             data: blogs,

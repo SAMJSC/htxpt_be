@@ -101,7 +101,7 @@ export class CustomersService extends BaseServiceAbstract<Customer> {
         filterObject: any,
         options: PaginationOptions
     ): Promise<Response> {
-        const customers = await this.customerRepository.findAll(
+        const customers = await this.customerRepository.findAllWithSubFields(
             filterObject,
             options
         );

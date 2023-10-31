@@ -28,6 +28,8 @@ export class GardensRepository
             limit?: number;
         }
     ): Promise<FindAllResponse<GardenerDocument>> {
+        console.log("offset", options);
+
         const [count, items] = await Promise.all([
             this.gardenModel.count({ ...condition, deleted_at: null }),
             this.gardenModel

@@ -61,10 +61,11 @@ export class FruitCategoryService {
         filterObject: any,
         options: PaginationOptions
     ): Promise<Response> {
-        const fruitCategories = await this.fruitCategoryRepository.findAll(
-            filterObject,
-            options
-        );
+        const fruitCategories =
+            await this.fruitCategoryRepository.findAllWithSubFields(
+                filterObject,
+                options
+            );
 
         return {
             ...httpResponse.GET_ALL_FRUIT_CATEGORY_SUCCESSFULLY,

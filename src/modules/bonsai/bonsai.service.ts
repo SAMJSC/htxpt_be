@@ -89,7 +89,7 @@ export class BonsaiService {
         filterObject: any,
         options: PaginationOptions
     ): Promise<Response> {
-        const bonsaiSpecial = await this.bonsaiRepository.findAll(
+        const bonsaiSpecial = await this.bonsaiRepository.findAllWithSubFields(
             filterObject,
             {
                 ...options,

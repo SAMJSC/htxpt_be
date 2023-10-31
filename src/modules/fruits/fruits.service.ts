@@ -183,10 +183,13 @@ export class FruitsService {
         filterObject: any,
         options: PaginationOptions
     ): Promise<Response> {
-        const fruits = await this.fruitRepository.findAll(filterObject, {
-            ...options,
-            populate: ["gardens", "fruit_categories", "fruit_images"],
-        });
+        const fruits = await this.fruitRepository.findAllWithSubFields(
+            filterObject,
+            {
+                ...options,
+                populate: ["gardens", "fruit_categories", "fruit_images"],
+            }
+        );
 
         return {
             ...httpResponse.GET_ALL_FRUIT_SUCCESSFULLY,
