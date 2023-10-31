@@ -79,13 +79,14 @@ export class SpecialFruitService {
         filterObject: any,
         options: PaginationOptions
     ): Promise<Response> {
-        const fruitSpecial = await this.fruitSpecialRepository.findAll(
-            filterObject,
-            {
-                ...options,
-                populate: ["fruit_images"],
-            }
-        );
+        const fruitSpecial =
+            await this.fruitSpecialRepository.findAllWithSubFields(
+                filterObject,
+                {
+                    ...options,
+                    populate: ["fruit_images"],
+                }
+            );
         return {
             ...httpResponse.GET_ALL_FRUIT_SUCCESSFULLY,
             data: { fruitSpecial },

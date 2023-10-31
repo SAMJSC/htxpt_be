@@ -50,7 +50,7 @@ export class GardensController {
         };
 
         for (const key in query) {
-            if (key != "limit" && key != "skip") {
+            if (key != "limit" && key != "offset") {
                 if (
                     typeof query[key] === "object" &&
                     !Array.isArray(query[key])
@@ -71,8 +71,8 @@ export class GardensController {
         }
 
         const options: PaginationOptions = {
-            limit: Number(query.limit) || 10,
-            skip: Number(query.skip) || 0,
+            limit: Number(query.limit) || 9999999,
+            offset: Number(query.offset) || 0,
         };
 
         return this.gardensService.getAllGardener(filterObject, options);

@@ -96,7 +96,7 @@ export class GardensService extends BaseServiceAbstract<Gardener> {
         filterObject: any,
         options: PaginationOptions
     ): Promise<Response> {
-        const gardeners = await this.gardenRepository.findAll(
+        const gardeners = await this.gardenRepository.findAllWithSubFields(
             filterObject,
             options
         );
