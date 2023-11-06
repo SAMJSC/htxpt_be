@@ -88,6 +88,53 @@ export class BonsaiController {
         return await this.bonsaiService.getAllBonsai(filterObject, options);
     }
 
+    @Get("/gardener/:gardenerID")
+    async getBonsaiByGardenID(
+        @Param("gardenerID") gardenerID: string,
+        @Query() query: any
+    ): Promise<Response> {
+        const filterObject = {};
+        const operationsMap = {
+            gt: "$gt",
+            lt: "$lt",
+            gte: "$gte",
+            lte: "$lte",
+            eq: "$eq",
+        };
+
+        for (const key in query) {
+            if (key != "limit" && key != "skip") {
+                if (
+                    typeof query[key] === "object" &&
+                    !Array.isArray(query[key])
+                ) {
+                    const operations = Object.keys(query[key]);
+                    filterObject[key] = {};
+                    for (const op of operations) {
+                        if (operationsMap[op]) {
+                            filterObject[key][operationsMap[op]] = Number(
+                                query[key][op]
+                            );
+                        }
+                    }
+                } else {
+                    filterObject[key] = new RegExp(query[key], "i");
+                }
+            }
+        }
+
+        const options: PaginationOptions = {
+            limit: Number(query.limit) || 99999,
+            offset: Number(query.offset) || 0,
+        };
+
+        return await this.bonsaiService.getBonsaiByGardenID(
+            gardenerID,
+            filterObject,
+            options
+        );
+    }
+
     @Get(":bonsaiID")
     async getBonsaiById(
         @Param("bonsaiID") bonsaiID: string

@@ -18,6 +18,7 @@ import {
 import { FruitImage } from "@schemas/fruit_image.schema";
 import { Gardener } from "@schemas/garden.schema";
 import { httpResponse } from "@shared/response";
+import { httpErrorResponse } from "@shared/response/error";
 import { Response } from "@shared/response/response.interface";
 import { Express } from "express";
 import { FruitImageRepositoryInterface } from "interfaces/fruit-image-repository.interface";
@@ -191,6 +192,13 @@ export class FruitsService {
             }
         );
 
+        if (fruits.count === 0) {
+            return {
+                ...httpErrorResponse.NO_FRUIT_FOUND,
+                data: [],
+            };
+        }
+
         return {
             ...httpResponse.GET_ALL_FRUIT_SUCCESSFULLY,
             data: fruits,
@@ -202,13 +210,31 @@ export class FruitsService {
         filterObject: any,
         options: PaginationOptions
     ): Promise<Response> {
+        const fruitCategory = await this.fruitCategoryModel.findById(
+            fruitCategoryID
+        );
+
+        if (!fruitCategory) {
+            throw new HttpException(
+                `The fruit category with id ${fruitCategory} doesn't existed`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+
         const fruits = await this.fruitRepository.findAllWithSubFields(
             { fruit_categories: fruitCategoryID, ...filterObject },
             {
                 ...options,
-                populate: ["gardens", "fruit_categories", "fruit_images"], // Populating the related subfields
+                populate: ["gardens", "fruit_categories", "fruit_images"],
             }
         );
+
+        if (fruits.count === 0) {
+            return {
+                ...httpErrorResponse.NO_FRUIT_FOUND,
+                data: [],
+            };
+        }
 
         return {
             ...httpResponse.GET_ALL_FRUIT_SUCCESSFULLY,
@@ -216,7 +242,42 @@ export class FruitsService {
         };
     }
 
-    async getFruitsById(fruitID: string): Promise<Response> {
+    async getFruitsByGardenID(
+        gardenID: string,
+        filterObject: any,
+        options: PaginationOptions
+    ): Promise<Response> {
+        const gardener = await this.gardenerModel.findById(gardenID);
+
+        if (!gardener) {
+            throw new HttpException(
+                `The gardener with id ${gardenID} doesn't existed`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        const fruits = await this.fruitRepository.findAllWithSubFields(
+            { gardens: gardenID, ...filterObject },
+            {
+                ...options,
+                populate: ["gardens", "fruit_categories", "fruit_images"],
+            }
+        );
+
+        if (fruits.count === 0) {
+            return {
+                ...httpErrorResponse.NO_FRUIT_FOUND,
+                data: [],
+            };
+        }
+
+        return {
+            ...httpResponse.GET_ALL_FRUIT_SUCCESSFULLY,
+            data: fruits,
+        };
+    }
+
+    async getFruitById(fruitID: string): Promise<Response> {
         const fruit = await this.fruitRepository.findOneById(fruitID, null, {
             populate: ["gardens", "fruit_categories", "fruit_images"],
         });

@@ -109,6 +109,41 @@ export class BonsaiService {
         };
     }
 
+    async getBonsaiByGardenID(
+        gardenerID: string,
+        filterObject: any,
+        options: PaginationOptions
+    ): Promise<Response> {
+        const gardener = await this.gardenerModel.findById(gardenerID);
+
+        if (!gardener) {
+            throw new HttpException(
+                `The gardener with id ${gardenerID} doesn't existed`,
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        const bonsaiSpecial = await this.bonsaiRepository.findAllWithSubFields(
+            { gardens: gardenerID, ...filterObject },
+            {
+                ...options,
+                populate: ["bonsai_images", "gardens"],
+            }
+        );
+
+        if (!bonsaiSpecial && bonsaiSpecial.count === 0) {
+            throw new HttpException(
+                "There are no bonsai existed yet",
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        return {
+            ...httpResponse.GET_ALL_BONSAI_SUCCESSFULLY,
+            data: bonsaiSpecial,
+        };
+    }
+
     async getBonsaiById(bonsaiID: string): Promise<Response> {
         const bonsai = await this.bonsaiRepository.findOneById(bonsaiID, null, {
             populate: ["bonsai_images", "gardens"],
