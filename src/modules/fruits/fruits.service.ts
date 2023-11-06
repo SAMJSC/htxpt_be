@@ -197,6 +197,25 @@ export class FruitsService {
         };
     }
 
+    async getAllGardenFruitByCategory(
+        fruitCategoryID: string,
+        filterObject: any,
+        options: PaginationOptions
+    ): Promise<Response> {
+        const fruits = await this.fruitRepository.findAllWithSubFields(
+            { fruit_categories: fruitCategoryID, ...filterObject },
+            {
+                ...options,
+                populate: ["gardens", "fruit_categories", "fruit_images"], // Populating the related subfields
+            }
+        );
+
+        return {
+            ...httpResponse.GET_ALL_FRUIT_SUCCESSFULLY,
+            data: fruits,
+        };
+    }
+
     async getFruitsById(fruitID: string): Promise<Response> {
         const fruit = await this.fruitRepository.findOneById(fruitID, null, {
             populate: ["gardens", "fruit_categories", "fruit_images"],
