@@ -1,7 +1,8 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { BonsaiImage } from "@schemas/bonsai_image.schema";
+import { BaseSchema } from "@shared/base.schema";
 import mongoose, { HydratedDocument } from "mongoose";
-import { FruitImage } from "schemas/fruit_image.schema";
-import { Garden } from "schemas/garden.schema";
+import { Gardener } from "schemas/garden.schema";
 
 export type BonsaiDocument = HydratedDocument<Bonsai>;
 
@@ -9,26 +10,31 @@ export type BonsaiDocument = HydratedDocument<Bonsai>;
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
     collection: "bonsai_trees",
 })
-export class Bonsai {
+export class Bonsai extends BaseSchema {
     @Prop()
     tree_name: string;
+
+    @Prop()
+    description: string;
 
     @Prop()
     quantity: number;
 
     @Prop({
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Gardens",
+        ref: "Gardener",
         required: true,
     })
-    gardens: Garden;
+    gardens: Gardener;
 
-    @Prop({
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "FruitImages",
-        required: true,
-    })
-    fruit_images: FruitImage;
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "BonsaiImage",
+            required: true,
+        },
+    ])
+    bonsai_images: BonsaiImage[];
 }
 
 export const BonsaiSchema = SchemaFactory.createForClass(Bonsai);

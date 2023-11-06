@@ -1,21 +1,16 @@
+import { Transform } from "class-transformer";
 import { IsNumber, IsOptional, IsString, Min } from "class-validator";
-import mongoose from "mongoose";
 
 export class UpdateFruitsDto {
     @IsOptional()
     @IsString()
     readonly fruit_name: string;
 
+    @Transform(({ value }) => Number(value))
     @IsOptional()
     @IsNumber()
     @Min(0)
     readonly quantity: number;
-
-    @IsOptional()
-    readonly fruit_categories: mongoose.Schema.Types.ObjectId;
-
-    @IsOptional()
-    readonly fruit_images: mongoose.Schema.Types.ObjectId;
 
     @IsOptional()
     @IsString()
@@ -32,9 +27,4 @@ export class UpdateFruitsDto {
 
     @IsOptional()
     readonly weight: number[];
-
-    @IsOptional()
-    @IsNumber()
-    @Min(0)
-    readonly fruit_category_quantity: number;
 }

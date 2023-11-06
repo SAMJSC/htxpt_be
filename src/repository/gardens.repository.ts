@@ -1,33 +1,33 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { GardensRepositoryInterface } from "interfaces/gardens-repository.interface";
+import { GardenerRepositoryInterface } from "interfaces/gardens-repository.interface";
 import { FilterQuery, Model, PopulateOptions } from "mongoose";
-import { Garden, GardensDocument } from "schemas/garden.schema";
+import { Gardener, GardenerDocument } from "schemas/garden.schema";
 import { FindAllResponse } from "types/common.type";
 
 import { BaseRepositoryAbstract } from "./base/base.abstract.repository";
 
 @Injectable()
 export class GardensRepository
-    extends BaseRepositoryAbstract<GardensDocument>
-    implements GardensRepositoryInterface
+    extends BaseRepositoryAbstract<GardenerDocument>
+    implements GardenerRepositoryInterface
 {
     constructor(
-        @InjectModel(Garden.name)
-        private readonly gardenModel: Model<GardensDocument>
+        @InjectModel(Gardener.name)
+        private readonly gardenModel: Model<GardenerDocument>
     ) {
         super(gardenModel);
     }
 
     async findAllWithSubFields(
-        condition: FilterQuery<GardensDocument>,
+        condition: FilterQuery<GardenerDocument>,
         options: {
             projection?: string;
             populate?: string[] | PopulateOptions | PopulateOptions[];
             offset?: number;
             limit?: number;
         }
-    ): Promise<FindAllResponse<GardensDocument>> {
+    ): Promise<FindAllResponse<GardenerDocument>> {
         const [count, items] = await Promise.all([
             this.gardenModel.count({ ...condition, deleted_at: null }),
             this.gardenModel

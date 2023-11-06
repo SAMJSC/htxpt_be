@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { BaseSchema } from "@shared/base.schema";
 import { Max, Min } from "class-validator";
-import { HydratedDocument } from "mongoose";
+import mongoose, { HydratedDocument } from "mongoose";
 
 export type BlogDocument = HydratedDocument<Blog>;
 
@@ -8,7 +9,7 @@ export type BlogDocument = HydratedDocument<Blog>;
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
     collection: "blog",
 })
-export class Blog {
+export class Blog extends BaseSchema {
     @Prop()
     title: string;
 
@@ -25,6 +26,13 @@ export class Blog {
 
     @Prop({ default: 0 })
     rating_quantity: number;
+
+    @Prop({
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Admin",
+        required: true,
+    })
+    auth: mongoose.Types.ObjectId;
 }
 
 export const BlogSchema = SchemaFactory.createForClass(Blog);

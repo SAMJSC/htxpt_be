@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+    # app:
+    #     build:
+    #         context: .
+    #         dockerfile: Dockerfile
+    #     ports:
+    #         - 3000:3000
+    #     environment:
+    #         - PORT
+    #         - SWAGGER_PATH
+    #         - SECRET_JWT
+    #         - REFRESH_TOKEN_SECRET_JWT
+    #         - DATABASE_HOST
+    #         - DATABASE_PASSWORD
+    #         - DATABASE_USER
+    #         - DATABASE_PORT
+    #         - DATABASE
+    #         - DATABASE_URI
+    #         - ENABLE_LOGGING
+    #         - REFRESH_JWT_SECRET_KEY
+    #         - ACCESS_JWT_SECRET_KEY
+    #         - RESET_JWT_SECRET_KEY
+    #         - ACCESS_TOKEN_EXPIRE_IN_SEC
+    #         - REFRESH_TOKEN_EXPIRE_IN_SEC
+    #         - CLOUD_NAME
+    #         - CLOUD_API_KEY
+    #         - CLOUD_SECRET_KEY
+    #     env_file:
+    #         - .env
+
+    redis:
+        image: 'redis:6-alpine'
+        ports:
+            - 6320:6379

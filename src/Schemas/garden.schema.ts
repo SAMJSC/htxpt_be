@@ -4,6 +4,7 @@ import {
     USER_ROLES,
 } from "@constants/common.constants";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { SpecialFruit } from "@schemas/special_fruit.schema";
 import { BaseSchema } from "@shared/base.schema";
 import { Exclude, Expose } from "class-transformer";
 import { Max, Min } from "class-validator";
@@ -16,7 +17,7 @@ import {
 } from "schemas/device_session.schema";
 import { Fruit } from "schemas/fruit.schema";
 
-export type GardensDocument = HydratedDocument<Garden>;
+export type GardenerDocument = HydratedDocument<Gardener>;
 
 @Schema({
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
@@ -35,8 +36,8 @@ export type GardensDocument = HydratedDocument<Garden>;
         },
     },
 })
-export class Garden extends BaseSchema {
-    @Prop({ unique: true })
+export class Gardener extends BaseSchema {
+    @Prop({ unique: true, sparse: true })
     email?: string;
 
     @Prop({
@@ -75,6 +76,7 @@ export class Garden extends BaseSchema {
 
     @Prop({
         unique: true,
+        sparse: true,
         get: (phone: string) => {
             if (!phone) {
                 return;
@@ -85,8 +87,17 @@ export class Garden extends BaseSchema {
     })
     phone?: string;
 
-    @Prop()
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "GardenerAvatar",
+            required: false,
+        },
+    ])
     avatar?: string;
+
+    @Prop()
+    image?: string;
 
     @Prop()
     address?: string;
@@ -97,10 +108,10 @@ export class Garden extends BaseSchema {
     @Prop({ type: String, enum: Object.values(GENDER) })
     gender?: GENDER;
 
-    @Prop({ required: true })
+    @Prop()
     @Exclude({ toPlainOnly: true })
     @Expose()
-    password: string;
+    password?: string;
 
     @Prop()
     @Exclude()
@@ -115,7 +126,7 @@ export class Garden extends BaseSchema {
     rating_quantity?: number;
 
     @Prop()
-    product_category?: PRODUCT_CATEGORY;
+    product_category?: PRODUCT_CATEGORY[];
 
     @Prop()
     response_rate?: number;
@@ -138,10 +149,30 @@ export class Garden extends BaseSchema {
     @Prop([
         {
             type: mongoose.Schema.Types.ObjectId,
+            ref: SpecialFruit.name,
+        },
+    ])
+    special_fruits?: SpecialFruit[];
+
+    @Prop([
+        {
+            type: mongoose.Schema.Types.ObjectId,
             ref: Bonsai.name,
         },
     ])
     bonsai?: Bonsai[];
+
+    @Prop({ default: undefined })
+    location?: string;
+
+    @Prop({ default: false })
+    email_verified?: boolean;
+
+    @Prop({ default: false })
+    phone_verified?: boolean;
+
+    @Prop({ type: String, enum: ["local", "google"], default: "local" })
+    authen_method?: string;
 
     @Prop([
         {
@@ -152,21 +183,34 @@ export class Garden extends BaseSchema {
     device_sessions?: DeviceSession[];
 }
 
-export const GardensSchema = SchemaFactory.createForClass(Garden);
+export const GardenerSchema = SchemaFactory.createForClass(Gardener);
 
 export const GardenSchemaFactory = (
     deviceSessionModel: Model<DeviceSessionDocument>
 ) => {
-    const garden_schema = GardensSchema;
+    const gardener_schema = GardenerSchema;
 
-    garden_schema.pre("findOneAndDelete", async function (next: NextFunction) {
-        const garden = await this.model.findOne(this.getFilter());
-        deviceSessionModel.deleteMany({ garden: garden._id });
-        return next();
-    });
+    gardener_schema.pre(
+        "findOneAndDelete",
+        async function (next: NextFunction) {
+            const garden = await this.model.findOne(this.getFilter());
+            deviceSessionModel.deleteMany({ garden: garden._id });
+            return next();
+        }
+    );
 
-    garden_schema.virtual("full_name").get(function (this: GardensDocument) {
+    gardener_schema.pre(
+        "findOneAndDelete",
+        async function (next: NextFunction) {
+            const gardener = await this.model.findOne(this.getFilter());
+            const fruitModel = mongoose.model("Fruit"); // assuming the Fruit model has been registered with this name
+            await fruitModel.deleteMany({ gardens: gardener._id });
+            next();
+        }
+    );
+
+    gardener_schema.virtual("full_name").get(function (this: GardenerDocument) {
         return `${this.first_name} ${this.middle_name} ${this.last_name} `;
     });
-    return garden_schema;
+    return gardener_schema;
 };

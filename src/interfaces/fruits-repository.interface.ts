@@ -1,6 +1,5 @@
 import { Fruit } from "@schemas/fruit.schema";
 import { BaseRepositoryInterface } from "repository/base/base.interface.repository";
-import { Garden } from "schemas/garden.schema";
 import { FindAllResponse } from "types/common.type";
 
 export interface FruitsRepositoryInterface

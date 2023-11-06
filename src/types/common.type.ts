@@ -18,8 +18,13 @@ export type LoginMetadata = {
 };
 
 export type SessionResponse = {
-    gardenData?: any; // replace with actual type if known
+    userData?: any;
     accessToken?: string;
     refreshToken: string;
     loginMetaData?: LoginMetadata;
 };
+
+export interface PaginationOptions {
+    limit: number;
+    offset: number;
+}

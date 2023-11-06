@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { BaseSchema } from "@shared/base.schema";
 import mongoose, { HydratedDocument } from "mongoose";
 import { Fruit } from "schemas/fruit.schema";
 
@@ -8,8 +9,8 @@ export type FruitCategoryDocument = HydratedDocument<FruitCategory>;
     timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
     collection: "fruit_categories",
 })
-export class FruitCategory {
-    @Prop()
+export class FruitCategory extends BaseSchema {
+    @Prop({ unique: true })
     category_name: string;
 
     @Prop()
@@ -24,8 +25,8 @@ export class FruitCategory {
     @Prop()
     weight: number[];
 
-    @Prop()
-    quantity: number;
+    @Prop({ default: 0 })
+    quantity?: number;
 
     @Prop([
         {

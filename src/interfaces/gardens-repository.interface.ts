@@ -1,9 +1,9 @@
 import { BaseRepositoryInterface } from "repository/base/base.interface.repository";
-import { Garden } from "schemas/garden.schema";
+import { Gardener } from "schemas/garden.schema";
 import { FindAllResponse } from "types/common.type";
 
-export interface GardensRepositoryInterface
-    extends BaseRepositoryInterface<Garden> {
+export interface GardenerRepositoryInterface
+    extends BaseRepositoryInterface<Gardener> {
     findAllWithSubFields(
         condition: object,
         options: {
@@ -12,5 +12,5 @@ export interface GardensRepositoryInterface
             offset?: number;
             limit?: number;
         }
-    ): Promise<FindAllResponse<Garden>>;
+    ): Promise<FindAllResponse<Gardener>>;
 }

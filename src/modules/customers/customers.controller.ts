@@ -1,75 +1,156 @@
+import { USER_ROLES } from "@constants/common.constants";
+import { JwtAuthGuard } from "@guards/jwt-auth.guard";
+import { RolesGuard } from "@guards/roles.guard";
 import { CustomersService } from "@modules/customers/customers.service";
-import { CreateCustomerDto } from "@modules/customers/dtos/create-сustomer.dto";
-import { UpdateUserDto } from "@modules/customers/dtos/update-customer.dto";
+import { UpdateCustomerDto } from "@modules/customers/dtos/update-customer.dto";
 import {
     Body,
     Controller,
     Delete,
     Get,
-    HttpStatus,
-    NotFoundException,
     Param,
     Patch,
     Post,
     Query,
-    Res,
+    UploadedFile,
+    UseGuards,
+    UseInterceptors,
 } from "@nestjs/common";
-
-@Controller("customer")
+import { FileInterceptor } from "@nestjs/platform-express";
+import { Customer } from "@schemas/customer.schema";
+import { Response } from "@shared/response/response.interface";
+import { UserDecorator } from "decorators/current-user.decorator";
+import { Roles } from "decorators/roles.decorator";
+import { Express } from "express";
+import { PaginationOptions } from "types/common.type";
+@Controller("customers")
 export class CustomersController {
     constructor(private readonly customersService: CustomersService) {}
 
-    @Post("/create")
-    async addCustomer(
-        @Res() res: any,
-        @Body() createUserDto: CreateCustomerDto
-    ) {
-        const customer = await this.customersService.createCustomer(
-            createUserDto
+    @UseGuards(JwtAuthGuard)
+    @Get(":customerID")
+    async getCustomerByID(
+        @Param("customerID") customerId: string
+    ): Promise<Response> {
+        const customer = await this.customersService.getCustomerById(
+            customerId
         );
-        return res.status(HttpStatus.OK).json({
-            message: "Customer has been created successfully",
-            customer,
-        });
+        return customer;
     }
 
+    @UseGuards(RolesGuard)
+    @Roles(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN)
     @Get()
-    async getAllCustomer(@Res() res: any) {
-        const customers = await this.customersService.getAllCustomer();
-        return res.status(HttpStatus.OK).json(customers);
+    findAll(@Query() query: any): Promise<Response> {
+        const filterObject = {};
+        const operationsMap = {
+            gt: "$gt",
+            lt: "$lt",
+            gte: "$gte",
+            lte: "$lte",
+            eq: "$eq",
+        };
+
+        for (const key in query) {
+            if (key != "limit" && key != "skip") {
+                if (
+                    typeof query[key] === "object" &&
+                    !Array.isArray(query[key])
+                ) {
+                    const operations = Object.keys(query[key]);
+                    filterObject[key] = {};
+                    for (const op of operations) {
+                        if (operationsMap[op]) {
+                            filterObject[key][operationsMap[op]] = Number(
+                                query[key][op]
+                            );
+                        }
+                    }
+                } else {
+                    filterObject[key] = new RegExp(query[key], "i");
+                }
+            }
+        }
+
+        const options: PaginationOptions = {
+            limit: Number(query.limit) || 99999,
+            offset: Number(query.offset) || 0,
+        };
+
+        return this.customersService.getAllCustomer(filterObject, options);
     }
 
-    @Get(":userID")
-    async getCustomer(@Res() res: any, @Param("userID") userID: string) {
-        const customer = await this.customersService.getCustomer(userID);
-        if (!customer) throw new NotFoundException("Customer does not exist!");
-        return res.status(HttpStatus.OK).json(customer);
-    }
-
-    @Patch("/update")
-    async updateCustomer(
-        @Res() res,
-        @Query("userID") userID,
-        @Body() updateUserDto: UpdateUserDto
-    ) {
-        const customer = await this.customersService.updateCustomer(
-            userID,
-            updateUserDto
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.CUSTOMER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN)
+    @Patch(":customerId")
+    updateCustomer(
+        @Param("customerId") customerId: string,
+        @Body() newCustomerInfoDto: UpdateCustomerDto,
+        @UserDecorator() user: Customer
+    ): Promise<Response> {
+        return this.customersService.updateCustomer(
+            user._id.toString(),
+            user.role,
+            customerId,
+            newCustomerInfoDto
         );
-        if (!customer) throw new NotFoundException("Customer does not exist!");
-        return res.status(HttpStatus.OK).json({
-            message: "Customer has been successfully updated",
-            customer,
-        });
     }
 
-    @Delete("/delete")
-    async deleteCustomer(@Res() res: any, @Query("userID") userID: string) {
-        const customer = await this.customersService.deleteCustomer(userID);
-        if (!customer) throw new NotFoundException("Customer does not exist");
-        return res.status(HttpStatus.OK).json({
-            message: "Customer has been deleted",
-            customer,
-        });
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN)
+    @Delete(":customerId")
+    remove(@Param("customerId") customerId: string): Promise<Response> {
+        return this.customersService.deleteCustomer(customerId);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.CUSTOMER)
+    @Post("favorite/:gardenerID")
+    addGardenerToFavorites(
+        @Param("gardenerID") gardenerID: string,
+        @UserDecorator() user: Customer
+    ): Promise<Response> {
+        return this.customersService.addGardenerToFavorites(
+            user._id.toString(),
+            gardenerID
+        );
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.CUSTOMER)
+    @Delete("favorite/:gardenerID")
+    removeGardenerFromFavorites(
+        @Param("gardenerID") gardenerID: string,
+        @UserDecorator() user: Customer
+    ): Promise<Response> {
+        return this.customersService.removeGardenerFromFavorites(
+            user._id.toString(),
+            gardenerID
+        );
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.CUSTOMER)
+    @Get("favorites/all")
+    listFavoriteGardeners(@UserDecorator() user: Customer): Promise<Response> {
+        return this.customersService.listFavoriteGardeners(user._id.toString());
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.CUSTOMER)
+    @Post("upload/avatar")
+    @UseInterceptors(FileInterceptor("avatar"))
+    uploadAvatar(
+        @UploadedFile() image: Express.Multer.File,
+        @UserDecorator() user: Customer
+    ): Promise<Response> {
+        return this.customersService.handleAvatar(user._id.toString(), image);
+    }
+
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(USER_ROLES.CUSTOMER)
+    @Delete("delete/avatar")
+    deleteAvatar(@UserDecorator() user: Customer): Promise<Response> {
+        return this.customersService.deleteAvatar(user._id.toString());
     }
 }

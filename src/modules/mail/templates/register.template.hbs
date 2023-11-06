@@ -1,0 +1,23 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Xác thực Email</title>
+        <style>
+            .verify-btn { display: inline-block; padding: 10px 20px; color:
+            #ffffff; background-color: #3498db; text-decoration: none;
+            border-radius: 4px; margin-top: 10px; }
+        </style>
+    </head>
+    <body>
+        <p>Xin chào {{username}}!</p>
+        <p>Cảm ơn bạn đã đăng ký sử dụng website của chúng tôi. Vui lòng nhấn
+            vào nút dưới đây để xác thực email của bạn:</p>
+        <a
+            href="http://localhost:3000/auth/{{role}}/verify-email?token={{token}}"
+            class="verify-btn"
+        >
+            Xác thực Email
+        </a>
+    </body>
+</html>
