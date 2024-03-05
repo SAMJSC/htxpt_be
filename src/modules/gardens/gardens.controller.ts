@@ -40,6 +40,7 @@ export class GardensController {
 
     @Get()
     findAll(@Query() query: any): Promise<Response> {
+        const searchValue = query.search_field;
         const filterObject = {};
         const operationsMap = {
             gt: "$gt",
@@ -49,23 +50,37 @@ export class GardensController {
             eq: "$eq",
         };
 
-        for (const key in query) {
-            if (key != "limit" && key != "offset") {
-                if (
-                    typeof query[key] === "object" &&
-                    !Array.isArray(query[key])
-                ) {
-                    const operations = Object.keys(query[key]);
-                    filterObject[key] = {};
-                    for (const op of operations) {
-                        if (operationsMap[op]) {
-                            filterObject[key][operationsMap[op]] = Number(
-                                query[key][op]
-                            );
+        const searchableFields = [
+            "first_name",
+            "last_name",
+            "email",
+            "username",
+            "phone",
+        ];
+
+        if (searchValue) {
+            filterObject["$or"] = searchableFields.map((field) => ({
+                [field]: new RegExp(searchValue, "i"),
+            }));
+        } else {
+            for (const key in query) {
+                if (key != "limit" && key != "offset") {
+                    if (
+                        typeof query[key] === "object" &&
+                        !Array.isArray(query[key])
+                    ) {
+                        const operations = Object.keys(query[key]);
+                        filterObject[key] = {};
+                        for (const op of operations) {
+                            if (operationsMap[op]) {
+                                filterObject[key][operationsMap[op]] = Number(
+                                    query[key][op]
+                                );
+                            }
                         }
+                    } else {
+                        filterObject[key] = new RegExp(query[key], "i");
                     }
-                } else {
-                    filterObject[key] = new RegExp(query[key], "i");
                 }
             }
         }

@@ -9,7 +9,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import { NestFactory, Reflector } from "@nestjs/core";
 import * as bcrypt from "bcrypt";
-import { scrypt } from "crypto";
+// import { scrypt } from "crypto";
 import { rateLimit } from "express-rate-limit";
 import session from "express-session";
 import { HttpExceptionFilter } from "filters/bad-request.filter";
@@ -20,8 +20,8 @@ import { get, x64hash128 } from "fingerprintjs2";
 import helmet from "helmet";
 import passport from "passport";
 import { initSwagger } from "swagger";
-import { promisify } from "util";
 
+// import { promisify } from "util";
 import { AppModule } from "./app.module";
 
 //TODO: if email or phone not active yet prevent some actions
@@ -32,10 +32,16 @@ async function bootstrap() {
     const configService = app.get(ConfigService);
     const adminService = app.get(AdminService);
 
+    // async function hashPassword(password: string): Promise<string> {
+    //     const salt = await bcrypt.genSalt();
+    //     const hash = (await promisify(scrypt)(password, salt, 32)) as Buffer;
+    //     const hashedPassword = salt + "#" + hash.toString("hex");
+    //     return hashedPassword;
+    // }
+
     async function hashPassword(password: string): Promise<string> {
-        const salt = await bcrypt.genSalt();
-        const hash = (await promisify(scrypt)(password, salt, 32)) as Buffer;
-        const hashedPassword = salt + "#" + hash.toString("hex");
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
         return hashedPassword;
     }
 
@@ -63,7 +69,7 @@ async function bootstrap() {
     app.use(
         rateLimit({
             windowMs: 15 * 60 * 1000,
-            max: 100,
+            max: 1000,
         })
     );
 

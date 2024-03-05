@@ -138,24 +138,56 @@ export class AuthService {
         };
     }
 
+    // async hashPassword(password: string): Promise<string> {
+    //     const salt = await bcrypt.genSalt();
+    //     const hash = (await promisify(scrypt)(password, salt, 32)) as Buffer;
+    //     const hashedPassword = salt + "#" + hash.toString("hex");
+    //     return hashedPassword;
+    // }
+
+    // async checkPassword(
+    //     userPassword: string,
+    //     hashedPassword: string
+    // ): Promise<boolean> {
+    //     const [salt, storedHash] = hashedPassword.split("#");
+    //     const hash = (await promisify(scrypt)(
+    //         userPassword,
+    //         salt,
+    //         32
+    //     )) as Buffer;
+    //     return hash.toString("hex") === storedHash;
+    // }
+
+    // private checkPasswordMatch(password: string, confirm_password: string) {
+    //     if (password !== confirm_password) {
+    //         throw new HttpException(
+    //             "Password and Confirm Password do not match",
+    //             HttpStatus.BAD_REQUEST
+    //         );
+    //     }
+    // }
+
     async hashPassword(password: string): Promise<string> {
-        const salt = await bcrypt.genSalt();
-        const hash = (await promisify(scrypt)(password, salt, 32)) as Buffer;
-        const hashedPassword = salt + "#" + hash.toString("hex");
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
         return hashedPassword;
     }
 
     async checkPassword(
-        userPassword: string,
-        hashedPassword: string
+        providedPassword: string,
+        storedHash: string
     ): Promise<boolean> {
-        const [salt, storedHash] = hashedPassword.split("#");
-        const hash = (await promisify(scrypt)(
-            userPassword,
-            salt,
-            32
-        )) as Buffer;
-        return hash.toString("hex") === storedHash;
+        const isMatch = await bcrypt.compare(providedPassword, storedHash);
+        return isMatch;
+    }
+
+    checkPasswordMatch(password: string, confirmPassword: string) {
+        if (password !== confirmPassword) {
+            throw new HttpException(
+                "Password and Confirm Password do not match",
+                HttpStatus.BAD_REQUEST
+            );
+        }
     }
 
     async generateNewAccessJWT(
@@ -302,15 +334,6 @@ export class AuthService {
                     );
                 }
             }
-        }
-    }
-
-    private checkPasswordMatch(password: string, confirm_password: string) {
-        if (password !== confirm_password) {
-            throw new HttpException(
-                "Password and Confirm Password do not match",
-                HttpStatus.BAD_REQUEST
-            );
         }
     }
 
